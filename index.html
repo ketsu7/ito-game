@@ -107,6 +107,7 @@
 
   <script>
     var GAS_URL = 'https://script.google.com/macros/s/AKfycbzZbmworRZD6ZO4Agg3I5KljhzFOiRqUmN36ahZ2P9lpOY9V-7lXGC5qBNJKiJ9l9Qy/exec';
+    var SHARE_URL = 'https://ketsu7.github.io/ito-game/';
     var CHARS = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 
     var state = {
@@ -319,8 +320,8 @@
 
     document.getElementById('copyInviteBtn').addEventListener('click', function () {
       if (!state.roomId) { setStatus('先にルームを作成してください。'); return; }
-      var msg = 'ito風ゲームに参加しよう！\nルームID: ' + state.roomId + '\n公開URLを開いてIDを入力してね';
-      copyText(msg, '招待案内文をコピーしました。');
+      var msg = 'ito風ゲームに参加しよう！\nURL: ' + SHARE_URL + '\nルームID: ' + state.roomId + '\nURLを開いてルームIDを入力して「入る」を押してね';
+      copyText(msg, 'URLとルームID入りの招待案内文をコピーしました。');
     });
 
     render();
