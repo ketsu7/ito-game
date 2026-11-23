@@ -160,7 +160,7 @@
           type="button"
           class="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-slate-800 active:scale-[0.98]"
         >
-          招待リンク・案内文をコピー
+          招待案内文をコピー（ルームID＋手順）
         </button>
       </div>
 
@@ -305,11 +305,9 @@
 
   <script>
     // =========================================================
-    // 初期設定：ここに自分の Google Apps Script ウェブアプリURL（.../exec）を
-    // 1回だけ書いておくと、どの端末や招待リンクから開いても自動で接続されます。
-    // （例：const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/xxxxx/exec';）
+    // 初期設定：自分の Google Apps Script ウェブアプリURL（.../exec）
     // =========================================================
-    const DEFAULT_GAS_URL = 'YOUR_GAS_WEB_APP_URL_HERE';
+    const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbzZbmworRZD6ZO4Agg3I5KljhzFOiRqUmN36ahZ2P9lpOY9V-7lXGC5qBNJKiJ9l9Qy/exec';
 
     // ---------------------------------------------------------
     // 定数・ストレージキー
@@ -482,14 +480,13 @@
       }
     }
 
-    function buildShareUrl(roomId) {
-      try {
-        const url = new URL(window.location.href);
-        url.searchParams.set('room', roomId);
-        return url.toString();
-      } catch (e) {
-        return `?room=${encodeURIComponent(roomId)}`;
-      }
+    function buildInviteMessage(roomId) {
+      return [
+        'ito風ゲームに参加しよう！',
+        `ルームID: ${roomId}`,
+        '1. 共有されたHTML（またはアプリ画面）を開く',
+        `2. ルームID欄に「${roomId}」を入力して「入る」を押す`
+      ].join('\n');
     }
 
     // ---------------------------------------------------------
@@ -520,4 +517,6 @@
         return { ok: false, localOnly: true };
       }
       // プリフライト回避のため Content-Type: text/plain;charset=utf-8 で送信
-  
+      const res = await fetch(state.gasUrl, {
+        method: 'POST',
+        headers: {
