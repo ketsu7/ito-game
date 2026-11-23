@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ito風 数字並べゲーム（ルーム＆テーマ共有）</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;600;700;800&display=swap');
+
+    body {
+      font-family: 'Noto Sans JP', 'Inter', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 antialiased selection:bg-indigo-500 selection:text-white">
+  <div class="mx-auto flex min-h-screen w-full max-w-md flex-col gap-4 px-4 py-5 pb-10">
+    <!-- ヘッダー＆折りたたみ式の開発者・詳細設定 -->
+    <header class="space-y-2.5">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <h1 class="text-lg font-extrabold tracking-tight text-white">ito風 1-100</h1>
+          <span
+            id="syncBadge"
+            class="rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-amber-300"
+          >
+            ローカルのみ
+          </span>
+        </div>
+        <button
+          id="toggleGasPanelBtn"
+          type="button"
+          class="rounded-xl border border-slate-800 bg-slate-900/90 px-2.5 py-1.5 text-[11px] font-semibold text-slate-400 transition hover:bg-slate-800 hover:text-slate-200 active:scale-[0.98]"
+          aria-expanded="false"
+          aria-controls="gasConfigPanel"
+        >
+          開発者・詳細設定
+        </button>
+      </div>
+
+      <!-- 普段は隠しておくGAS URL詳細設定パネル -->
+      <section
+        id="gasConfigPanel"
+        class="hidden rounded-2xl border border-slate-800 bg-slate-900/95 p-4 shadow-lg"
+      >
+        <div class="mb-1 flex items-center justify-between gap-2">
+          <label for="gasUrlInput" class="text-xs font-bold text-slate-300">
+            GAS ウェブアプリURL（上書き・テスト用）
+          </label>
+          <span id="gasSavedIndicator" class="text-[11px] font-medium text-slate-400">
+            未設定
+          </span>
+        </div>
+        <p class="mb-2.5 text-[11px] leading-relaxed text-slate-400">
+          通常はコード内の <code class="text-indigo-300">DEFAULT_GAS_URL</code> にURLを書き込んでおけば入力不要です。別のURLを一時的に試したい場合のみここで保存できます。
+        </p>
+        <div class="flex gap-2">
+          <input
+            id="gasUrlInput"
+            type="url"
+            inputmode="url"
+            placeholder="https://script.google.com/macros/s/.../exec"
+            class="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-xs text-white placeholder-slate-500 focus:border-indigo-400 focus:outline-none"
+          />
+          <button
+            id="saveGasUrlBtn"
+            type="button"
+            class="shrink-0 rounded-xl bg-indigo-500 px-3.5 py-2.5 text-xs font-bold text-white transition hover:bg-indigo-400 active:scale-[0.98]"
+          >
+            保存・接続
+          </button>
+        </div>
+        <div class="mt-2.5 flex items-center justify-between gap-2">
+          <p id="gasStatusMessage" class="min-h-[1rem] text-[11px] text-slate-400">
+            URL未設定の場合はローカルのみで動作します。
+          </p>
+          <button
+            id="clearGasUrlBtn"
+            type="button"
+            class="shrink-0 text-[11px] font-semibold text-slate-400 underline hover:text-slate-200"
+          >
+            上書き解除
+          </button>
+        </div>
+      </section>
+    </header>
+
+    <!-- ルーム作成・参加＆現在のルーム表示 -->
+    <section class="rounded-2xl border border-slate-800 bg-slate-900/90 p-4 shadow-lg space-y-3.5">
+      <div class="flex items-center justify-between gap-2">
+        <div class="text-xs font-bold tracking-wider text-slate-400">ルーム管理</div>
+        <div class="inline-flex items-center gap-1.5 rounded-full border border-slate-800 bg-slate-950 px-3 py-1 text-xs font-semibold text-slate-200">
+          <span>第</span>
+          <span id="gameCountDisplay" class="tabular-nums font-extrabold text-indigo-400">1</span>
+          <span>ゲーム</span>
+        </div>
+      </div>
+
+      <!-- 新しいルームを作る -->
+      <button
+        id="createRoomBtn"
+        type="button"
+        class="w-full rounded-2xl bg-indigo-500 px-4 py-3.5 text-sm font-extrabold text-white shadow-md shadow-indigo-500/20 transition hover:bg-indigo-400 active:scale-[0.98]"
+      >
+        ＋ 新しいルームを作る（6桁ID発行）
+      </button>
+
+      <!-- ルームIDを入力して入る -->
+      <form id="joinRoomForm" class="flex gap-2" novalidate>
+        <label for="joinRoomInput" class="sr-only">ルームIDを入力</label>
+        <input
+          id="joinRoomInput"
+          type="text"
+          maxlength="12"
+          placeholder="ルームIDを入力（例：K7M2P9）"
+          class="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm font-semibold uppercase tracking-wider text-white placeholder-slate-500 focus:border-indigo-400 focus:outline-none"
+        />
+        <button
+          type="submit"
+          class="shrink-0 rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-bold text-slate-100 transition hover:bg-slate-700 active:scale-[0.98]"
+        >
+          入る
+        </button>
+      </form>
+
+      <!-- 現在のルーム情報＆共有ボタン -->
+      <div class="rounded-2xl border border-slate-800 bg-slate-950/90 p-3 space-y-2.5">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <div class="text-[11px] text-slate-400">現在のルームID</div>
+            <div id="currentRoomIdDisplay" class="tabular-nums text-lg font-extrabold tracking-widest text-white">
+              ------
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button
+              id="copyRoomIdBtn"
+              type="button"
+              class="rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-bold text-slate-100 transition hover:bg-slate-700 active:scale-[0.98]"
+            >
+              IDコピー
+            </button>
+            <button
+              id="refreshRoomBtn"
+              type="button"
+              class="rounded-xl border border-indigo-500/40 bg-indigo-500/15 px-3 py-2 text-xs font-bold text-indigo-300 transition hover:bg-indigo-500/25 active:scale-[0.98]"
+            >
+              最新を読み込む
+            </button>
+          </div>
+        </div>
+
+        <button
+          id="copyInviteBtn"
+          type="button"
+          class="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-slate-800 active:scale-[0.98]"
+        >
+          招待リンク・案内文をコピー
+        </button>
+      </div>
+
+      <p id="roomFeedback" class="min-h-[1.1rem] text-xs text-emerald-300"></p>
+    </section>
+
+    <!-- 共有テーマエリア -->
+    <section class="rounded-2xl border border-slate-800 bg-slate-900/90 p-4 shadow-lg">
+      <div class="mb-1 flex items-center justify-between gap-2">
+        <span class="text-xs font-bold tracking-wider text-slate-400">今回のテーマ</span>
+        <span id="themeSyncMeta" class="text-[11px] text-slate-500">未同期</span>
+      </div>
+
+      <div
+        id="themeDisplay"
+        class="min-h-[3rem] break-words rounded-xl border border-slate-800/80 bg-slate-950/70 px-3.5 py-2.5 text-lg font-bold leading-snug text-white"
+      >
+        テーマを入力してください
+      </div>
+
+      <form id="themeForm" class="mt-3 flex gap-2" novalidate>
+        <label for="themeInput" class="sr-only">テーマを入力</label>
+        <input
+          id="themeInput"
+          type="text"
+          maxlength="120"
+          placeholder="新しいテーマを入力（例：無人島に持っていきたいもの）"
+          class="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-indigo-400 focus:outline-none"
+        />
+        <button
+          type="submit"
+          class="shrink-0 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-extrabold text-slate-950 transition hover:bg-emerald-400 active:scale-[0.98]"
+        >
+          テーマ送信
+        </button>
+      </form>
+      <p id="themeFeedback" class="mt-1.5 min-h-[1.1rem] text-xs text-amber-300"></p>
+    </section>
+
+    <!-- メイン：1〜100の数字カード＆勝敗判定 -->
+    <main class="space-y-4">
+      <!-- 1ゲーム終了時のバナー -->
+      <div
+        id="endBanner"
+        class="hidden rounded-2xl border px-4 py-3 text-center shadow-md"
+        role="status"
+        aria-live="polite"
+      >
+        <div id="endBannerTitle" class="text-base font-extrabold tracking-wide"></div>
+        <div id="endBannerSub" class="mt-0.5 text-xs opacity-90"></div>
+      </div>
+
+      <!-- 1-100 数字カード -->
+      <section class="rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900 to-slate-900/75 p-5 text-center shadow-xl">
+        <div class="mb-3 flex items-center justify-between gap-2">
+          <span class="text-xs font-medium text-slate-400">あなたの数字（1〜100）</span>
+          <button
+            id="toggleMaskBtn"
+            type="button"
+            class="rounded-xl border border-slate-700 bg-slate-800/90 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-700 active:scale-[0.98]"
+          >
+            <span id="toggleMaskLabel">隠す</span>
+          </button>
+        </div>
+
+        <button
+          id="numberCardBtn"
+          type="button"
+          class="group flex h-44 w-full flex-col items-center justify-center rounded-2xl border border-slate-700/80 bg-slate-950/90 transition hover:border-indigo-400/60 active:scale-[0.99]"
+          aria-label="数字の表示と非表示を切り替える"
+        >
+          <span
+            id="numberValue"
+            class="tabular-nums text-7xl font-extrabold tracking-tight text-indigo-400 sm:text-8xl"
+          >
+            --
+          </span>
+          <span
+            id="maskedPlaceholder"
+            class="hidden text-2xl font-bold tracking-widest text-slate-500"
+          >
+            ● ● ●
+          </span>
+          <span class="mt-2 text-[11px] text-slate-500 group-hover:text-slate-400">
+            タップで隠す / 見るを切り替え
+          </span>
+        </button>
+      </section>
+
+      <!-- 成功 / 失敗 ボタン -->
+      <div id="activeControls" class="grid grid-cols-2 gap-3">
+        <button
+          id="successBtn"
+          type="button"
+          class="rounded-2xl bg-emerald-500 px-4 py-4 text-base font-extrabold text-slate-950 shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-400 active:scale-[0.98]"
+        >
+          成功
+        </button>
+        <button
+          id="failBtn"
+          type="button"
+          class="rounded-2xl bg-rose-500 px-4 py-4 text-base font-extrabold text-white shadow-lg shadow-rose-500/20 transition hover:bg-rose-400 active:scale-[0.98]"
+        >
+          失敗
+        </button>
+      </div>
+
+      <!-- 次のゲームへ -->
+      <div id="nextGameControls" class="hidden space-y-2">
+        <button
+          id="nextGameBtn"
+          type="button"
+          class="w-full rounded-2xl bg-indigo-500 px-5 py-4 text-base font-extrabold text-white shadow-lg shadow-indigo-500/25 transition hover:bg-indigo-400 active:scale-[0.98]"
+        >
+          次のゲームへ（同期＆新しい数字）
+        </button>
+        <p class="text-center text-xs text-slate-400">
+          最新テーマを確認し、ゲーム数を1進めて新しい1〜100の数字を引きます。
+        </p>
+      </div>
+    </main>
+
+    <!-- 履歴リスト（localStorage保存） -->
+    <footer class="rounded-2xl border border-slate-800/90 bg-slate-900/75 p-4">
+      <div class="mb-2.5 flex items-center justify-between gap-2">
+        <h2 class="text-xs font-bold tracking-wider text-slate-400">ゲーム履歴</h2>
+        <div class="flex items-center gap-2">
+          <span id="historyCount" class="tabular-nums text-xs text-slate-500">0件</span>
+          <button
+            id="clearHistoryBtn"
+            type="button"
+            class="text-[11px] font-semibold text-slate-400 underline hover:text-slate-200"
+          >
+            履歴消去
+          </button>
+        </div>
+      </div>
+
+      <ul id="historyList" class="max-h-48 space-y-2 overflow-y-auto pr-0.5 text-sm"></ul>
+    </footer>
+  </div>
+
+  <script>
+    // =========================================================
+    // 初期設定：ここに自分の Google Apps Script ウェブアプリURL（.../exec）を
+    // 1回だけ書いておくと、どの端末や招待リンクから開いても自動で接続されます。
+    // （例：const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/xxxxx/exec';）
+    // =========================================================
+    const DEFAULT_GAS_URL = 'YOUR_GAS_WEB_APP_URL_HERE';
+
+    // ---------------------------------------------------------
+    // 定数・ストレージキー
+    // ---------------------------------------------------------
+    const STORAGE_KEYS = {
+      overrideGasUrl: 'ito_step3_override_gas_url_v1',
+      roomId: 'ito_step3_room_id_v1',
+      history: 'ito_step3_history_v1'
+    };
+
+    const MAX_THEME_LEN = 120;
+    const MAX_ROOM_LEN = 12;
+    // 0/O/1/I など紛らわしい文字を除外した6桁英数字生成用文字セット
+    const ROOM_CHARS = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+
+    function drawRandom1To100() {
+      return Math.floor(Math.random() * 100) + 1;
+    }
+
+    function generateRoomId(length = 6) {
+      let id = '';
+      for (let i = 0; i < length; i++) {
+        const idx = Math.floor(Math.random() * ROOM_CHARS.length);
+        id += ROOM_CHARS[idx];
+      }
+      return id;
+    }
+
+    function sanitizeRoomId(raw) {
+      return String(raw || '')
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9_-]/g, '')
+        .slice(0, MAX_ROOM_LEN);
+    }
+
+    function isValidGasUrl(url) {
+      const trimmed = String(url || '').trim();
+      if (!trimmed || trimmed === 'YOUR_GAS_WEB_APP_URL_HERE') {
+        return false;
+      }
+      try {
+        const parsed = new URL(trimmed);
+        return parsed.protocol === 'https:' && parsed.hostname.endsWith('script.google.com');
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function resolveActiveGasUrl(overrideUrl) {
+      if (isValidGasUrl(overrideUrl)) {
+        return String(overrideUrl).trim();
+      }
+      if (isValidGasUrl(DEFAULT_GAS_URL)) {
+        return String(DEFAULT_GAS_URL).trim();
+      }
+      return '';
+    }
+
+    function loadHistoryFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.history);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed.slice(-50) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveHistoryToStorage(history) {
+      try {
+        localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(history.slice(-50)));
+      } catch (e) {
+        // ストレージ容量超過などは無視
+      }
+    }
+
+    // ---------------------------------------------------------
+    // アプリケーション状態
+    // ---------------------------------------------------------
+    const state = {
+      overrideGasUrl: '',
+      gasUrl: '',
+      gasPanelOpen: false, // 普段は閉じてメイン画面をスッキリ保つ
+      roomId: '',
+      theme: 'スーパー銭湯のあとに飲みたいもの',
+      gameCount: 1,
+      number: drawRandom1To100(),
+      isMasked: false,
+      isRoundFinished: false,
+      lastResult: null, // 'success' | 'fail' | null
+      isSyncing: false,
+      lastSyncText: '未同期',
+      history: loadHistoryFromStorage()
+    };
+
+    // ---------------------------------------------------------
+    // DOM参照
+    // ---------------------------------------------------------
+    const el = {
+      syncBadge: document.getElementById('syncBadge'),
+      toggleGasPanelBtn: document.getElementById('toggleGasPanelBtn'),
+      gasConfigPanel: document.getElementById('gasConfigPanel'),
+      gasSavedIndicator: document.getElementById('gasSavedIndicator'),
+      gasUrlInput: document.getElementById('gasUrlInput'),
+      saveGasUrlBtn: document.getElementById('saveGasUrlBtn'),
+      clearGasUrlBtn: document.getElementById('clearGasUrlBtn'),
+      gasStatusMessage: document.getElementById('gasStatusMessage'),
+      gameCountDisplay: document.getElementById('gameCountDisplay'),
+      createRoomBtn: document.getElementById('createRoomBtn'),
+      joinRoomForm: document.getElementById('joinRoomForm'),
+      joinRoomInput: document.getElementById('joinRoomInput'),
+      currentRoomIdDisplay: document.getElementById('currentRoomIdDisplay'),
+      copyRoomIdBtn: document.getElementById('copyRoomIdBtn'),
+      refreshRoomBtn: document.getElementById('refreshRoomBtn'),
+      copyInviteBtn: document.getElementById('copyInviteBtn'),
+      roomFeedback: document.getElementById('roomFeedback'),
+      themeSyncMeta: document.getElementById('themeSyncMeta'),
+      themeDisplay: document.getElementById('themeDisplay'),
+      themeForm: document.getElementById('themeForm'),
+      themeInput: document.getElementById('themeInput'),
+      themeFeedback: document.getElementById('themeFeedback'),
+      endBanner: document.getElementById('endBanner'),
+      endBannerTitle: document.getElementById('endBannerTitle'),
+      endBannerSub: document.getElementById('endBannerSub'),
+      toggleMaskBtn: document.getElementById('toggleMaskBtn'),
+      toggleMaskLabel: document.getElementById('toggleMaskLabel'),
+      numberCardBtn: document.getElementById('numberCardBtn'),
+      numberValue: document.getElementById('numberValue'),
+      maskedPlaceholder: document.getElementById('maskedPlaceholder'),
+      activeControls: document.getElementById('activeControls'),
+      nextGameControls: document.getElementById('nextGameControls'),
+      successBtn: document.getElementById('successBtn'),
+      failBtn: document.getElementById('failBtn'),
+      nextGameBtn: document.getElementById('nextGameBtn'),
+      historyCount: document.getElementById('historyCount'),
+      clearHistoryBtn: document.getElementById('clearHistoryBtn'),
+      historyList: document.getElementById('historyList')
+    };
+
+    // ---------------------------------------------------------
+    // クリップボードコピー（iFrame/スマホ環境対応）
+    // ---------------------------------------------------------
+    async function copyTextSafe(text) {
+      if (!text) return false;
+      try {
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      } catch (e) {
+        // execCommand フォールバックへ進む
+      }
+
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        textarea.setSelectionRange(0, textarea.value.length);
+        const ok = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        return Boolean(ok);
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function buildShareUrl(roomId) {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('room', roomId);
+        return url.toString();
+      } catch (e) {
+        return `?room=${encodeURIComponent(roomId)}`;
+      }
+    }
+
+    // ---------------------------------------------------------
+    // GAS通信（GET取得 / POST保存）
+    // ---------------------------------------------------------
+    function hasActiveGas() {
+      return Boolean(state.gasUrl && isValidGasUrl(state.gasUrl));
+    }
+
+    async function fetchRoomFromGas(roomId) {
+      if (!hasActiveGas() || !roomId) {
+        return { ok: false, localOnly: true };
+      }
+      const endpoint = `${state.gasUrl}?room=${encodeURIComponent(roomId)}`;
+      const res = await fetch(endpoint, { method: 'GET' });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      if (!data || data.ok === false) {
+        throw new Error((data && data.error) || '読み込みに失敗しました');
+      }
+      return data;
+    }
+
+    async function postRoomToGas(payload) {
+      if (!hasActiveGas() || !payload.room_id) {
+        return { ok: false, localOnly: true };
+      }
+      // プリフライト回避のため Content-Type: text/plain;charset=utf-8 で送信
+  
