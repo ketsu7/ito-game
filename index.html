@@ -33,18 +33,21 @@
       margin-top: 8px; width: 100%;
     }
     .num-val { font-size: 56px; font-weight: 800; color: #818cf8; }
-    .log-box {
-      background: #020617; border: 1px solid #334155; border-radius: 10px;
-      padding: 10px; font-size: 12px; color: #fde68a; white-space: pre-wrap; word-break: break-all;
-    }
     .badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: #1e293b; color: #a5b4fc; }
+    .notice { font-size: 12px; color: #94a3b8; min-height: 1.2em; }
+    .result-banner {
+      margin-top: 10px; padding: 10px 12px; border-radius: 10px;
+      font-weight: 800; font-size: 14px; text-align: center; display: none;
+    }
+    .result-ok { background: rgba(16, 185, 129, 0.18); border: 1px solid #10b981; color: #6ee7b7; }
+    .result-ng { background: rgba(244, 63, 94, 0.18); border: 1px solid #f43f5e; color: #fda4af; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="row" style="justify-content: space-between;">
       <strong>ito風 1-100</strong>
-      <span id="badge" class="badge">起動完了</span>
+      <span id="badge" class="badge">準備完了</span>
     </div>
 
     <div class="card" style="display:flex; flex-direction:column; gap:10px;">
@@ -68,6 +71,7 @@
         </div>
       </div>
       <button id="copyInviteBtn" type="button" class="btn-sub" style="width:100%;">招待案内文をコピー</button>
+      <div id="statusMsg" class="notice"></div>
     </div>
 
     <div class="card" style="display:flex; flex-direction:column; gap:8px;">
@@ -90,16 +94,14 @@
         <span id="numVal" class="num-val">--</span>
         <span id="maskVal" style="display:none; font-size:20px; font-weight:700; color:#64748b;">● ● ●</span>
       </button>
-      <div class="row" style="margin-top:10px;">
+
+      <div id="resultBanner" class="result-banner"></div>
+
+      <div id="judgeRow" class="row" style="margin-top:10px;">
         <button id="successBtn" type="button" class="btn-ok">成功</button>
         <button id="failBtn" type="button" class="btn-ng">失敗</button>
       </div>
       <button id="nextBtn" type="button" class="btn-primary" style="display:none; margin-top:10px;">次のゲームへ</button>
-    </div>
-
-    <div class="card">
-      <div style="font-size:12px; color:#94a3b8; margin-bottom:6px;">動作・通信ログ</div>
-      <div id="logBox" class="log-box">待機中（ボタンを押すとここに経過が出ます）</div>
     </div>
   </div>
 
@@ -113,11 +115,15 @@
       gameCount: 1,
       number: Math.floor(Math.random() * 100) + 1,
       masked: false,
-      finished: false
+      finished: false,
+      lastResult: null
     };
 
-    function logMsg(text) {
-      document.getElementById('logBox').textContent = text;
+    function setStatus(text, badgeText) {
+      document.getElementById('statusMsg').textContent = text || '';
+      if (badgeText) {
+        document.getElementById('badge').textContent = badgeText;
+      }
     }
 
     function genId() {
@@ -136,57 +142,73 @@
       document.getElementById('numVal').style.display = state.masked ? 'none' : 'inline';
       document.getElementById('maskVal').style.display = state.masked ? 'inline' : 'none';
       document.getElementById('maskBtn').textContent = state.masked ? '見る' : '隠す';
-      document.getElementById('nextBtn').style.display = state.finished ? 'block' : 'none';
+
+      var banner = document.getElementById('resultBanner');
+      var judgeRow = document.getElementById('judgeRow');
+      var nextBtn = document.getElementById('nextBtn');
+
+      if (!state.finished) {
+        banner.style.display = 'none';
+        banner.className = 'result-banner';
+        judgeRow.style.display = 'flex';
+        nextBtn.style.display = 'none';
+      } else {
+        var isOk = state.lastResult === 'success';
+        banner.style.display = 'block';
+        banner.className = 'result-banner ' + (isOk ? 'result-ok' : 'result-ng');
+        banner.textContent = isOk
+          ? '第' + state.gameCount + 'ゲーム：成功！（あなたの数字: ' + state.number + '）'
+          : '第' + state.gameCount + 'ゲーム：失敗…（あなたの数字: ' + state.number + '）';
+        judgeRow.style.display = 'none';
+        nextBtn.style.display = 'block';
+      }
     }
 
     async function callGasGet(roomId) {
-      logMsg('1/2 GASへGET通信中... (' + roomId + ')');
       var res = await fetch(GAS_URL + '?room=' + encodeURIComponent(roomId));
-      logMsg('GET応答受信 HTTP ' + res.status + ' / JSON解析中...');
       return await res.json();
     }
 
     async function callGasPost(payload) {
-      logMsg('2/2 GASへPOST保存中... (' + payload.room_id + ')');
       var res = await fetch(GAS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload)
       });
-      logMsg('POST応答受信 HTTP ' + res.status + ' / JSON解析中...');
       return await res.json();
     }
 
     async function enterRoom(id, initialTheme) {
       var clean = String(id || '').trim().toUpperCase();
       if (!clean) {
-        logMsg('ルームIDが空です');
+        setStatus('ルームIDを入力してください。');
         return;
       }
       state.roomId = clean;
       state.finished = false;
+      state.lastResult = null;
       state.masked = false;
       state.number = Math.floor(Math.random() * 100) + 1;
       render();
+      setStatus('ルーム「' + clean + '」に接続中...', '通信中');
 
       try {
         var data = await callGasGet(clean);
-        logMsg('GET完了: ' + JSON.stringify(data));
         state.gameCount = Math.max(1, Number(data.game_count) || 1);
         if (data.theme && String(data.theme).trim() !== '') {
           state.theme = String(data.theme).trim();
         } else if (initialTheme) {
           state.theme = initialTheme;
-          var postRes = await callGasPost({
+          await callGasPost({
             room_id: clean,
             theme: state.theme,
             game_count: state.gameCount
           });
-          logMsg('POST完了: ' + JSON.stringify(postRes));
         }
         render();
+        setStatus('ルーム「' + clean + '」に入室しました。', '同期済み');
       } catch (err) {
-        logMsg('エラー発生: ' + (err && err.message ? err.message : String(err)));
+        setStatus('通信エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
       }
     }
 
@@ -204,7 +226,7 @@
 
     document.getElementById('refreshBtn').addEventListener('click', function () {
       if (!state.roomId) {
-        logMsg('先にルームを作成または入室してください');
+        setStatus('先にルームを作成または入室してください。');
         return;
       }
       enterRoom(state.roomId, '');
@@ -218,19 +240,22 @@
       state.theme = t;
       inp.value = '';
       render();
+
       if (!state.roomId) {
-        logMsg('ルーム未入室のため画面のテーマだけ更新しました');
+        setStatus('画面のテーマを更新しました（ルーム未入室）。');
         return;
       }
+
+      setStatus('テーマを送信中...', '通信中');
       try {
-        var res = await callGasPost({
+        await callGasPost({
           room_id: state.roomId,
           theme: state.theme,
           game_count: state.gameCount
         });
-        logMsg('テーマ保存完了: ' + JSON.stringify(res));
+        setStatus('テーマを共有しました。', '同期済み');
       } catch (err) {
-        logMsg('テーマ送信エラー: ' + (err && err.message ? err.message : String(err)));
+        setStatus('テーマ送信エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
       }
     });
 
@@ -243,14 +268,16 @@
 
     document.getElementById('successBtn').addEventListener('click', function () {
       state.finished = true;
+      state.lastResult = 'success';
       render();
-      logMsg('第' + state.gameCount + 'ゲーム：成功（あなたの数字: ' + state.number + '）');
+      setStatus('「次のゲームへ」を押すと次の回に進みます。');
     });
 
     document.getElementById('failBtn').addEventListener('click', function () {
       state.finished = true;
+      state.lastResult = 'fail';
       render();
-      logMsg('第' + state.gameCount + 'ゲーム：失敗（あなたの数字: ' + state.number + '）');
+      setStatus('「次のゲームへ」を押すと次の回に進みます。');
     });
 
     document.getElementById('nextBtn').addEventListener('click', async function () {
@@ -258,17 +285,20 @@
       state.number = Math.floor(Math.random() * 100) + 1;
       state.masked = false;
       state.finished = false;
+      state.lastResult = null;
       render();
+
       if (state.roomId) {
+        setStatus('次のゲーム情報を同期中...', '通信中');
         try {
-          var res = await callGasPost({
+          await callGasPost({
             room_id: state.roomId,
             theme: state.theme,
             game_count: state.gameCount
           });
-          logMsg('次ゲーム同期完了: ' + JSON.stringify(res));
+          setStatus('第' + state.gameCount + 'ゲームを開始しました。', '同期済み');
         } catch (err) {
-          logMsg('次ゲーム同期エラー: ' + (err && err.message ? err.message : String(err)));
+          setStatus('同期エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
         }
       }
     });
@@ -276,21 +306,21 @@
     async function copyText(str, okMsg) {
       try {
         await navigator.clipboard.writeText(str);
-        logMsg(okMsg);
+        setStatus(okMsg);
       } catch (e) {
-        logMsg('コピー対象: ' + str);
+        setStatus('コピーできませんでした: ' + str);
       }
     }
 
     document.getElementById('copyIdBtn').addEventListener('click', function () {
-      if (!state.roomId) { logMsg('ルームIDがありません'); return; }
-      copyText(state.roomId, 'ルームIDをコピーしました: ' + state.roomId);
+      if (!state.roomId) { setStatus('コピーするルームIDがありません。'); return; }
+      copyText(state.roomId, 'ルームID「' + state.roomId + '」をコピーしました。');
     });
 
     document.getElementById('copyInviteBtn').addEventListener('click', function () {
-      if (!state.roomId) { logMsg('先にルームを作成してください'); return; }
+      if (!state.roomId) { setStatus('先にルームを作成してください。'); return; }
       var msg = 'ito風ゲームに参加しよう！\nルームID: ' + state.roomId + '\n公開URLを開いてIDを入力してね';
-      copyText(msg, '招待案内文をコピーしました');
+      copyText(msg, '招待案内文をコピーしました。');
     });
 
     render();
