@@ -3,21 +3,297 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>テスト版</title>
+  <title>ito風 数字並べゲーム</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Noto Sans JP", sans-serif;
+      background: #020617;
+      color: #f8fafc;
+      margin: 0;
+      padding: 16px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .wrap { max-width: 460px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+    .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 14px; padding: 14px; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    input {
+      flex: 1; min-width: 0; background: #020617; color: #fff;
+      border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; font-size: 14px;
+    }
+    button {
+      border: 0; border-radius: 10px; padding: 10px 14px; font-weight: 700; font-size: 14px; cursor: pointer;
+    }
+    .btn-primary { background: #6366f1; color: #fff; width: 100%; padding: 13px; }
+    .btn-sub { background: #1e293b; color: #f8fafc; }
+    .btn-ok { background: #10b981; color: #022c22; flex: 1; padding: 13px; }
+    .btn-ng { background: #f43f5e; color: #fff; flex: 1; padding: 13px; }
+    .num-box {
+      background: #020617; border: 1px solid #334155; border-radius: 12px;
+      height: 130px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      margin-top: 8px; width: 100%;
+    }
+    .num-val { font-size: 56px; font-weight: 800; color: #818cf8; }
+    .log-box {
+      background: #020617; border: 1px solid #334155; border-radius: 10px;
+      padding: 10px; font-size: 12px; color: #fde68a; white-space: pre-wrap; word-break: break-all;
+    }
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: #1e293b; color: #a5b4fc; }
+  </style>
 </head>
-<body style="background:#0f172a;color:#fff;font-family:sans-serif;padding:24px;">
-  <h1>動作テスト</h1>
-  <p id="status">待機中</p>
-  <button id="testBtn" style="padding:12px 20px;font-size:16px;">押してテスト</button>
-  <div id="numBox" style="font-size:48px;margin-top:20px;">--</div>
+<body>
+  <div class="wrap">
+    <div class="row" style="justify-content: space-between;">
+      <strong>ito風 1-100</strong>
+      <span id="badge" class="badge">起動完了</span>
+    </div>
+
+    <div class="card" style="display:flex; flex-direction:column; gap:10px;">
+      <div class="row" style="justify-content: space-between;">
+        <span style="font-size:12px; color:#94a3b8;">ルーム管理</span>
+        <span style="font-size:12px;">第 <strong id="gameCount">1</strong> ゲーム</span>
+      </div>
+      <button id="createRoomBtn" type="button" class="btn-primary">＋ 新しいルームを作る（6桁ID発行）</button>
+      <form id="joinRoomForm" class="row">
+        <input id="joinRoomInput" type="text" maxlength="12" placeholder="ルームIDを入力（例：K7M2P9）" />
+        <button type="submit" class="btn-sub">入る</button>
+      </form>
+      <div class="row" style="justify-content: space-between;">
+        <div>
+          <div style="font-size:11px; color:#94a3b8;">現在のルームID</div>
+          <div id="roomIdDisp" style="font-size:18px; font-weight:800; letter-spacing:2px;">------</div>
+        </div>
+        <div class="row">
+          <button id="copyIdBtn" type="button" class="btn-sub">IDコピー</button>
+          <button id="refreshBtn" type="button" class="btn-sub">最新読込</button>
+        </div>
+      </div>
+      <button id="copyInviteBtn" type="button" class="btn-sub" style="width:100%;">招待案内文をコピー</button>
+    </div>
+
+    <div class="card" style="display:flex; flex-direction:column; gap:8px;">
+      <div style="font-size:12px; color:#94a3b8;">今回のテーマ</div>
+      <div id="themeDisp" style="font-size:16px; font-weight:700; padding:8px; background:#020617; border-radius:8px;">
+        テーマを入力してください
+      </div>
+      <form id="themeForm" class="row">
+        <input id="themeInput" type="text" maxlength="120" placeholder="新しいテーマを入力" />
+        <button type="submit" class="btn-sub" style="background:#10b981; color:#022c22;">送信</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content: space-between;">
+        <span style="font-size:12px; color:#94a3b8;">あなたの数字（1〜100）</span>
+        <button id="maskBtn" type="button" class="btn-sub">隠す</button>
+      </div>
+      <button id="cardBtn" type="button" class="num-box">
+        <span id="numVal" class="num-val">--</span>
+        <span id="maskVal" style="display:none; font-size:20px; font-weight:700; color:#64748b;">● ● ●</span>
+      </button>
+      <div class="row" style="margin-top:10px;">
+        <button id="successBtn" type="button" class="btn-ok">成功</button>
+        <button id="failBtn" type="button" class="btn-ng">失敗</button>
+      </div>
+      <button id="nextBtn" type="button" class="btn-primary" style="display:none; margin-top:10px;">次のゲームへ</button>
+    </div>
+
+    <div class="card">
+      <div style="font-size:12px; color:#94a3b8; margin-bottom:6px;">動作・通信ログ</div>
+      <div id="logBox" class="log-box">待機中（ボタンを押すとここに経過が出ます）</div>
+    </div>
+  </div>
 
   <script>
-    document.getElementById('status').textContent = 'JSは正常に動いています！';
-    document.getElementById('testBtn').addEventListener('click', function () {
-      var n = Math.floor(Math.random() * 100) + 1;
-      document.getElementById('numBox').textContent = n;
-      document.getElementById('status').textContent = 'ボタン押下OK: ' + n;
+    var GAS_URL = 'https://script.google.com/macros/s/AKfycbzZbmworRZD6ZO4Agg3I5KljhzFOiRqUmN36ahZ2P9lpOY9V-7lXGC5qBNJKiJ9l9Qy/exec';
+    var CHARS = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+
+    var state = {
+      roomId: '',
+      theme: 'スーパー銭湯のあとに飲みたいもの',
+      gameCount: 1,
+      number: Math.floor(Math.random() * 100) + 1,
+      masked: false,
+      finished: false
+    };
+
+    function logMsg(text) {
+      document.getElementById('logBox').textContent = text;
+    }
+
+    function genId() {
+      var s = '';
+      for (var i = 0; i < 6; i++) {
+        s += CHARS[Math.floor(Math.random() * CHARS.length)];
+      }
+      return s;
+    }
+
+    function render() {
+      document.getElementById('gameCount').textContent = state.gameCount;
+      document.getElementById('roomIdDisp').textContent = state.roomId || '------';
+      document.getElementById('themeDisp').textContent = state.theme;
+      document.getElementById('numVal').textContent = state.number;
+      document.getElementById('numVal').style.display = state.masked ? 'none' : 'inline';
+      document.getElementById('maskVal').style.display = state.masked ? 'inline' : 'none';
+      document.getElementById('maskBtn').textContent = state.masked ? '見る' : '隠す';
+      document.getElementById('nextBtn').style.display = state.finished ? 'block' : 'none';
+    }
+
+    async function callGasGet(roomId) {
+      logMsg('1/2 GASへGET通信中... (' + roomId + ')');
+      var res = await fetch(GAS_URL + '?room=' + encodeURIComponent(roomId));
+      logMsg('GET応答受信 HTTP ' + res.status + ' / JSON解析中...');
+      return await res.json();
+    }
+
+    async function callGasPost(payload) {
+      logMsg('2/2 GASへPOST保存中... (' + payload.room_id + ')');
+      var res = await fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      logMsg('POST応答受信 HTTP ' + res.status + ' / JSON解析中...');
+      return await res.json();
+    }
+
+    async function enterRoom(id, initialTheme) {
+      var clean = String(id || '').trim().toUpperCase();
+      if (!clean) {
+        logMsg('ルームIDが空です');
+        return;
+      }
+      state.roomId = clean;
+      state.finished = false;
+      state.masked = false;
+      state.number = Math.floor(Math.random() * 100) + 1;
+      render();
+
+      try {
+        var data = await callGasGet(clean);
+        logMsg('GET完了: ' + JSON.stringify(data));
+        state.gameCount = Math.max(1, Number(data.game_count) || 1);
+        if (data.theme && String(data.theme).trim() !== '') {
+          state.theme = String(data.theme).trim();
+        } else if (initialTheme) {
+          state.theme = initialTheme;
+          var postRes = await callGasPost({
+            room_id: clean,
+            theme: state.theme,
+            game_count: state.gameCount
+          });
+          logMsg('POST完了: ' + JSON.stringify(postRes));
+        }
+        render();
+      } catch (err) {
+        logMsg('エラー発生: ' + (err && err.message ? err.message : String(err)));
+      }
+    }
+
+    document.getElementById('createRoomBtn').addEventListener('click', function () {
+      enterRoom(genId(), state.theme);
     });
+
+    document.getElementById('joinRoomForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var inp = document.getElementById('joinRoomInput');
+      var v = inp.value;
+      inp.value = '';
+      enterRoom(v, '');
+    });
+
+    document.getElementById('refreshBtn').addEventListener('click', function () {
+      if (!state.roomId) {
+        logMsg('先にルームを作成または入室してください');
+        return;
+      }
+      enterRoom(state.roomId, '');
+    });
+
+    document.getElementById('themeForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var inp = document.getElementById('themeInput');
+      var t = inp.value.trim();
+      if (!t) return;
+      state.theme = t;
+      inp.value = '';
+      render();
+      if (!state.roomId) {
+        logMsg('ルーム未入室のため画面のテーマだけ更新しました');
+        return;
+      }
+      try {
+        var res = await callGasPost({
+          room_id: state.roomId,
+          theme: state.theme,
+          game_count: state.gameCount
+        });
+        logMsg('テーマ保存完了: ' + JSON.stringify(res));
+      } catch (err) {
+        logMsg('テーマ送信エラー: ' + (err && err.message ? err.message : String(err)));
+      }
+    });
+
+    function toggleMask() {
+      state.masked = !state.masked;
+      render();
+    }
+    document.getElementById('maskBtn').addEventListener('click', toggleMask);
+    document.getElementById('cardBtn').addEventListener('click', toggleMask);
+
+    document.getElementById('successBtn').addEventListener('click', function () {
+      state.finished = true;
+      render();
+      logMsg('第' + state.gameCount + 'ゲーム：成功（あなたの数字: ' + state.number + '）');
+    });
+
+    document.getElementById('failBtn').addEventListener('click', function () {
+      state.finished = true;
+      render();
+      logMsg('第' + state.gameCount + 'ゲーム：失敗（あなたの数字: ' + state.number + '）');
+    });
+
+    document.getElementById('nextBtn').addEventListener('click', async function () {
+      state.gameCount += 1;
+      state.number = Math.floor(Math.random() * 100) + 1;
+      state.masked = false;
+      state.finished = false;
+      render();
+      if (state.roomId) {
+        try {
+          var res = await callGasPost({
+            room_id: state.roomId,
+            theme: state.theme,
+            game_count: state.gameCount
+          });
+          logMsg('次ゲーム同期完了: ' + JSON.stringify(res));
+        } catch (err) {
+          logMsg('次ゲーム同期エラー: ' + (err && err.message ? err.message : String(err)));
+        }
+      }
+    });
+
+    async function copyText(str, okMsg) {
+      try {
+        await navigator.clipboard.writeText(str);
+        logMsg(okMsg);
+      } catch (e) {
+        logMsg('コピー対象: ' + str);
+      }
+    }
+
+    document.getElementById('copyIdBtn').addEventListener('click', function () {
+      if (!state.roomId) { logMsg('ルームIDがありません'); return; }
+      copyText(state.roomId, 'ルームIDをコピーしました: ' + state.roomId);
+    });
+
+    document.getElementById('copyInviteBtn').addEventListener('click', function () {
+      if (!state.roomId) { logMsg('先にルームを作成してください'); return; }
+      var msg = 'ito風ゲームに参加しよう！\nルームID: ' + state.roomId + '\n公開URLを開いてIDを入力してね';
+      copyText(msg, '招待案内文をコピーしました');
+    });
+
+    render();
   </script>
 </body>
 </html>
