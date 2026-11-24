@@ -16,6 +16,7 @@
     .wrap { max-width: 460px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
     .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 14px; padding: 14px; }
     .row { display: flex; gap: 8px; align-items: center; }
+    .col { display: flex; flex-direction: column; gap: 8px; }
     input {
       flex: 1; min-width: 0; background: #020617; color: #fff;
       border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; font-size: 14px;
@@ -34,6 +35,17 @@
     }
     .num-val { font-size: 56px; font-weight: 800; color: #818cf8; }
     .badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: #1e293b; color: #a5b4fc; }
+    .count-pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700;
+      background: #172554; color: #93c5fd; border: 1px solid #1d4ed8;
+    }
+    .member-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    .member-chip {
+      font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
+      background: #020617; border: 1px solid #334155; color: #e2e8f0;
+    }
+    .member-me { border-color: #6366f1; color: #c7d2fe; }
     .notice { font-size: 12px; color: #94a3b8; min-height: 1.2em; }
     .result-banner {
       margin-top: 10px; padding: 10px 12px; border-radius: 10px;
@@ -47,13 +59,27 @@
   <div class="wrap">
     <div class="row" style="justify-content: space-between;">
       <strong>ito風 1-100</strong>
-      <span id="badge" class="badge">準備完了</span>
+      <div class="row">
+        <span id="memberCountBadge" class="count-pill">参加者 0人</span>
+        <span id="badge" class="badge">準備完了</span>
+      </div>
     </div>
 
-    <div class="card" style="display:flex; flex-direction:column; gap:10px;">
+    <div class="card col" style="gap:10px;">
+      <div class="row" style="justify-content: space-between;">
+        <span style="font-size:12px; color:#94a3b8;">あなたのニックネーム</span>
+        <span style="font-size:12px;">第 <strong id="gameCount">1</strong> ゲーム</span>
+      </div>
+      <form id="nicknameForm" class="row">
+        <input id="nicknameInput" type="text" maxlength="20" placeholder="ニックネームを入力（例：たくみ）" />
+        <button type="submit" class="btn-sub">確定</button>
+      </form>
+      <div id="memberList" class="member-list"></div>
+    </div>
+
+    <div class="card col" style="gap:10px;">
       <div class="row" style="justify-content: space-between;">
         <span style="font-size:12px; color:#94a3b8;">ルーム管理</span>
-        <span style="font-size:12px;">第 <strong id="gameCount">1</strong> ゲーム</span>
       </div>
       <button id="createRoomBtn" type="button" class="btn-primary">＋ 新しいルームを作る（6桁ID発行）</button>
       <form id="joinRoomForm" class="row">
@@ -74,7 +100,7 @@
       <div id="statusMsg" class="notice"></div>
     </div>
 
-    <div class="card" style="display:flex; flex-direction:column; gap:8px;">
+    <div class="card col">
       <div style="font-size:12px; color:#94a3b8;">今回のテーマ</div>
       <div id="themeDisp" style="font-size:16px; font-weight:700; padding:8px; background:#020617; border-radius:8px;">
         テーマを入力してください
@@ -112,6 +138,9 @@
 
     var state = {
       roomId: '',
+      nickname: '',
+      members: [],
+      serverMemberCount: null,
       theme: 'スーパー銭湯のあとに飲みたいもの',
       gameCount: 1,
       number: Math.floor(Math.random() * 100) + 1,
@@ -135,6 +164,60 @@
       return s;
     }
 
+    function normalizeMembers(raw) {
+      if (!Array.isArray(raw)) return [];
+      var seen = {};
+      var list = [];
+      for (var i = 0; i < raw.length; i++) {
+        var item = raw[i];
+        var name = typeof item === 'string' ? item : (item && (item.nickname || item.name) ? String(item.nickname || item.name) : '');
+        name = name.trim();
+        if (name && !seen[name]) {
+          seen[name] = true;
+          list.push(name);
+        }
+      }
+      return list;
+    }
+
+    function mergeLocalMember() {
+      var nick = state.nickname.trim();
+      if (!nick) return;
+      if (state.members.indexOf(nick) === -1) {
+        state.members.push(nick);
+      }
+    }
+
+    function getMemberCount() {
+      if (typeof state.serverMemberCount === 'number' && !isNaN(state.serverMemberCount) && state.serverMemberCount > 0) {
+        return Math.max(state.serverMemberCount, state.members.length);
+      }
+      return state.members.length;
+    }
+
+    function renderMembers() {
+      var count = getMemberCount();
+      document.getElementById('memberCountBadge').textContent = '参加者 ' + count + '人';
+
+      var box = document.getElementById('memberList');
+      box.innerHTML = '';
+      if (!state.members.length) {
+        var empty = document.createElement('span');
+        empty.className = 'notice';
+        empty.textContent = state.roomId ? 'ニックネームを入力すると参加者一覧に表示されます' : 'ルームに入ると参加者が表示されます';
+        box.appendChild(empty);
+        return;
+      }
+
+      for (var i = 0; i < state.members.length; i++) {
+        var name = state.members[i];
+        var chip = document.createElement('span');
+        chip.className = 'member-chip' + (name === state.nickname ? ' member-me' : '');
+        chip.textContent = name + (name === state.nickname ? '（あなた）' : '');
+        box.appendChild(chip);
+      }
+    }
+
     function render() {
       document.getElementById('gameCount').textContent = state.gameCount;
       document.getElementById('roomIdDisp').textContent = state.roomId || '------';
@@ -143,6 +226,7 @@
       document.getElementById('numVal').style.display = state.masked ? 'none' : 'inline';
       document.getElementById('maskVal').style.display = state.masked ? 'inline' : 'none';
       document.getElementById('maskBtn').textContent = state.masked ? '見る' : '隠す';
+      renderMembers();
 
       var banner = document.getElementById('resultBanner');
       var judgeRow = document.getElementById('judgeRow');
@@ -165,16 +249,39 @@
       }
     }
 
+    function applyRoomPayload(data) {
+      if (!data || typeof data !== 'object') return;
+      state.gameCount = Math.max(1, Number(data.game_count) || 1);
+      if (data.theme && String(data.theme).trim() !== '') {
+        state.theme = String(data.theme).trim();
+      }
+      var parsedMembers = normalizeMembers(data.members || data.participants);
+      if (parsedMembers.length) {
+        state.members = parsedMembers;
+      }
+      if (typeof data.member_count === 'number') {
+        state.serverMemberCount = data.member_count;
+      } else if (typeof data.participant_count === 'number') {
+        state.serverMemberCount = data.participant_count;
+      }
+      mergeLocalMember();
+    }
+
     async function callGasGet(roomId) {
-      var res = await fetch(GAS_URL + '?room=' + encodeURIComponent(roomId));
+      var url = GAS_URL + '?room=' + encodeURIComponent(roomId);
+      if (state.nickname) {
+        url += '&nickname=' + encodeURIComponent(state.nickname);
+      }
+      var res = await fetch(url);
       return await res.json();
     }
 
     async function callGasPost(payload) {
+      var body = Object.assign({ nickname: state.nickname }, payload);
       var res = await fetch(GAS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(body)
       });
       return await res.json();
     }
@@ -185,26 +292,35 @@
         setStatus('ルームIDを入力してください。');
         return;
       }
+      if (!state.nickname) {
+        var typedNick = document.getElementById('nicknameInput').value.trim();
+        if (typedNick) {
+          state.nickname = typedNick;
+        }
+      }
       state.roomId = clean;
       state.finished = false;
       state.lastResult = null;
       state.masked = false;
       state.number = Math.floor(Math.random() * 100) + 1;
+      mergeLocalMember();
       render();
       setStatus('ルーム「' + clean + '」に接続中...', '通信中');
 
       try {
         var data = await callGasGet(clean);
-        state.gameCount = Math.max(1, Number(data.game_count) || 1);
-        if (data.theme && String(data.theme).trim() !== '') {
-          state.theme = String(data.theme).trim();
-        } else if (initialTheme) {
+        applyRoomPayload(data);
+        if ((!data || !data.theme || String(data.theme).trim() === '') && initialTheme) {
           state.theme = initialTheme;
-          await callGasPost({
+        }
+        if (state.nickname) {
+          var postRes = await callGasPost({
             room_id: clean,
             theme: state.theme,
-            game_count: state.gameCount
+            game_count: state.gameCount,
+            action: 'join'
           });
+          applyRoomPayload(postRes);
         }
         render();
         setStatus('ルーム「' + clean + '」に入室しました。', '同期済み');
@@ -212,6 +328,39 @@
         setStatus('通信エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
       }
     }
+
+    document.getElementById('nicknameForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var inp = document.getElementById('nicknameInput');
+      var nick = inp.value.trim();
+      if (!nick) {
+        setStatus('ニックネームを入力してください。');
+        return;
+      }
+      state.nickname = nick;
+      mergeLocalMember();
+      render();
+
+      if (!state.roomId) {
+        setStatus('ニックネームを「' + nick + '」に設定しました。ルームを作成するか入室してください。');
+        return;
+      }
+
+      setStatus('ニックネームをルームに反映中...', '通信中');
+      try {
+        var res = await callGasPost({
+          room_id: state.roomId,
+          theme: state.theme,
+          game_count: state.gameCount,
+          action: 'join'
+        });
+        applyRoomPayload(res);
+        render();
+        setStatus('ニックネーム「' + nick + '」を反映しました。', '同期済み');
+      } catch (err) {
+        setStatus('ニックネーム反映エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
+      }
+    });
 
     document.getElementById('createRoomBtn').addEventListener('click', function () {
       enterRoom(genId(), state.theme);
@@ -249,11 +398,13 @@
 
       setStatus('テーマを送信中...', '通信中');
       try {
-        await callGasPost({
+        var res = await callGasPost({
           room_id: state.roomId,
           theme: state.theme,
           game_count: state.gameCount
         });
+        applyRoomPayload(res);
+        render();
         setStatus('テーマを共有しました。', '同期済み');
       } catch (err) {
         setStatus('テーマ送信エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
@@ -292,11 +443,13 @@
       if (state.roomId) {
         setStatus('次のゲーム情報を同期中...', '通信中');
         try {
-          await callGasPost({
+          var res = await callGasPost({
             room_id: state.roomId,
             theme: state.theme,
             game_count: state.gameCount
           });
+          applyRoomPayload(res);
+          render();
           setStatus('第' + state.gameCount + 'ゲームを開始しました。', '同期済み');
         } catch (err) {
           setStatus('同期エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
