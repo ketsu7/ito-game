@@ -101,7 +101,10 @@
     </div>
 
     <div class="card col">
-      <div style="font-size:12px; color:#94a3b8;">今回のテーマ</div>
+      <div class="row" style="justify-content: space-between;">
+        <span style="font-size:12px; color:#94a3b8;">今回のテーマ</span>
+        <button id="drawThemeBtn" type="button" class="btn-sub" style="padding:5px 10px; font-size:12px;">お題を引く</button>
+      </div>
       <div id="themeDisp" style="font-size:16px; font-weight:700; padding:8px; background:#020617; border-radius:8px;">
         テーマを入力してください
       </div>
@@ -136,18 +139,65 @@
     var SHARE_URL = 'https://ketsu7.github.io/ito-game/';
     var CHARS = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 
+    var THEMES = [
+      'スーパー銭湯のあとに飲みたいもの',
+      '休日の昼下がりに飲みたいお酒',
+      '深夜に食べたくなる背徳グルメ',
+      '1000円以内で味わえる最高のご褒美',
+      '旅行先で思わず買ってしまうお土産',
+      '雨の日に聴きたくなる曲・歌',
+      '無人島に1つだけ持っていくなら',
+      '小学生のころに憧れていた職業・大人',
+      '思わず二度見してしまうファッション・髪型',
+      '初対面の人とすぐ打ち解けられる話題',
+      '「これがあると生活がちょっと豊かになる」アイテム',
+      '寝る前に考えがちで眠れなくなること',
+      '漫画やアニメに出てきそうな必殺技・セリフ',
+      'ちょっと気まずい沈黙が流れたときの空気感',
+      '「これは大人になったな」と感じる瞬間',
+      '冬の朝、布団から出られない理由',
+      '夏の暑い日に一番うれしい瞬間',
+      '居酒屋で最初に頼みがちなメニュー',
+      '〆（シメ）に食べたくなるもの',
+      'コーヒーや紅茶を飲みたくなるシチュエーション',
+      'ちょっとした贅沢を感じる外食',
+      '「意外と手間がかかるな…」と思うこと',
+      '子どものころ怖かったもの・苦手だったもの',
+      '旅先で出会ったらテンションが上がるもの',
+      'ボードゲームやカードゲームで盛り上がる瞬間',
+      '「これだけは譲れない！」というこだわり',
+      '気づいたら時間が溶けていること',
+      'ちょっと背伸びしている感じがするお店・注文',
+      '友達にすすめたい映画・作品・場所のテンション',
+      '「なんだか今日はツイている！」と感じる出来事',
+      '逆に「今日は早めに帰ろう…」となる出来事',
+      'ギフトにもらったら嬉しいもの',
+      '季節の変わり目に感じること',
+      '「それ、どういう意味？」とツッコミたくなる一言',
+      'レトロ・昭和っぽい雰囲気を感じるもの',
+      '未来・SFっぽさを感じるもの',
+      '静かに集中したいときに合う環境・音',
+      'みんなでワイワイ騒ぎたいときの気分',
+      '「実はちょっと苦手かも…」と小声で言いたいこと',
+      '明日への活力になる一言・出来事'
+    ];
+
     var state = {
       roomId: '',
       nickname: '',
       members: [],
       serverMemberCount: null,
-      theme: 'スーパー銭湯のあとに飲みたいもの',
+      theme: THEMES[0],
+      lastThemeIndex: 0,
       gameCount: 1,
       number: Math.floor(Math.random() * 100) + 1,
       masked: false,
       finished: false,
       lastResult: null
     };
+
+    var syncTimer = null;
+    var isSyncing = false;
 
     function setStatus(text, badgeText) {
       document.getElementById('statusMsg').textContent = text || '';
@@ -162,6 +212,42 @@
         s += CHARS[Math.floor(Math.random() * CHARS.length)];
       }
       return s;
+    }
+
+    function pickRandomTheme() {
+      if (THEMES.length <= 1) return THEMES[0] || '';
+      var idx = Math.floor(Math.random() * THEMES.length);
+      if (idx === state.lastThemeIndex) {
+        idx = (idx + 1) % THEMES.length;
+      }
+      state.lastThemeIndex = idx;
+      return THEMES[idx];
+    }
+
+    async function applyTheme(nextTheme, sourceLabel) {
+      var t = String(nextTheme || '').trim();
+      if (!t) return;
+      state.theme = t;
+      render();
+
+      if (!state.roomId) {
+        setStatus((sourceLabel || 'テーマ') + 'を反映しました（ルーム未入室）。');
+        return;
+      }
+
+      setStatus('テーマを共有中...', '通信中');
+      try {
+        var res = await callGasPost({
+          room_id: state.roomId,
+          theme: state.theme,
+          game_count: state.gameCount
+        });
+        applyRoomPayload(res);
+        render();
+        setStatus('テーマを共有しました。', '同期済み');
+      } catch (err) {
+        setStatus('テーマ送信エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
+      }
     }
 
     function normalizeMembers(raw) {
@@ -255,20 +341,21 @@
       if (data.theme && String(data.theme).trim() !== '') {
         state.theme = String(data.theme).trim();
       }
-      var parsedMembers = normalizeMembers(data.members || data.participants);
-      if (parsedMembers.length) {
-        state.members = parsedMembers;
+      if (Array.isArray(data.members) || Array.isArray(data.participants)) {
+        state.members = normalizeMembers(data.members || data.participants);
       }
       if (typeof data.member_count === 'number') {
         state.serverMemberCount = data.member_count;
       } else if (typeof data.participant_count === 'number') {
         state.serverMemberCount = data.participant_count;
+      } else {
+        state.serverMemberCount = state.members.length;
       }
       mergeLocalMember();
     }
 
     async function callGasGet(roomId) {
-      var url = GAS_URL + '?room=' + encodeURIComponent(roomId);
+      var url = GAS_URL + '?room=' + encodeURIComponent(roomId) + '&_t=' + Date.now();
       if (state.nickname) {
         url += '&nickname=' + encodeURIComponent(state.nickname);
       }
@@ -286,7 +373,26 @@
       return await res.json();
     }
 
-    async function enterRoom(id, initialTheme) {
+    function startAutoSync() {
+      if (syncTimer) clearInterval(syncTimer);
+      syncTimer = setInterval(async function () {
+        if (!state.roomId || isSyncing || document.hidden) return;
+        isSyncing = true;
+        try {
+          var data = await callGasGet(state.roomId);
+          if (data && data.ok !== false) {
+            applyRoomPayload(data);
+            render();
+          }
+        } catch (e) {
+          // バックグラウンド同期の単発エラーは無視
+        } finally {
+          isSyncing = false;
+        }
+      }, 4000);
+    }
+
+    async function enterRoom(id, initialTheme, keepNumber) {
       var clean = String(id || '').trim().toUpperCase();
       if (!clean) {
         setStatus('ルームIDを入力してください。');
@@ -298,11 +404,18 @@
           state.nickname = typedNick;
         }
       }
+      var isNewRoomSwitch = state.roomId !== clean;
       state.roomId = clean;
-      state.finished = false;
-      state.lastResult = null;
-      state.masked = false;
-      state.number = Math.floor(Math.random() * 100) + 1;
+      if (isNewRoomSwitch) {
+        state.members = [];
+        state.serverMemberCount = null;
+      }
+      if (!keepNumber) {
+        state.finished = false;
+        state.lastResult = null;
+        state.masked = false;
+        state.number = Math.floor(Math.random() * 100) + 1;
+      }
       mergeLocalMember();
       render();
       setStatus('ルーム「' + clean + '」に接続中...', '通信中');
@@ -313,7 +426,7 @@
         if ((!data || !data.theme || String(data.theme).trim() === '') && initialTheme) {
           state.theme = initialTheme;
         }
-        if (state.nickname) {
+        if (state.nickname || initialTheme) {
           var postRes = await callGasPost({
             room_id: clean,
             theme: state.theme,
@@ -323,6 +436,7 @@
           applyRoomPayload(postRes);
         }
         render();
+        startAutoSync();
         setStatus('ルーム「' + clean + '」に入室しました。', '同期済み');
       } catch (err) {
         setStatus('通信エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
@@ -363,7 +477,7 @@
     });
 
     document.getElementById('createRoomBtn').addEventListener('click', function () {
-      enterRoom(genId(), state.theme);
+      enterRoom(genId(), state.theme, false);
     });
 
     document.getElementById('joinRoomForm').addEventListener('submit', function (e) {
@@ -371,7 +485,7 @@
       var inp = document.getElementById('joinRoomInput');
       var v = inp.value;
       inp.value = '';
-      enterRoom(v, '');
+      enterRoom(v, '', false);
     });
 
     document.getElementById('refreshBtn').addEventListener('click', function () {
@@ -379,7 +493,12 @@
         setStatus('先にルームを作成または入室してください。');
         return;
       }
-      enterRoom(state.roomId, '');
+      enterRoom(state.roomId, '', true);
+    });
+
+    document.getElementById('drawThemeBtn').addEventListener('click', async function () {
+      var picked = pickRandomTheme();
+      await applyTheme(picked, 'ランダムお題');
     });
 
     document.getElementById('themeForm').addEventListener('submit', async function (e) {
@@ -387,28 +506,8 @@
       var inp = document.getElementById('themeInput');
       var t = inp.value.trim();
       if (!t) return;
-      state.theme = t;
       inp.value = '';
-      render();
-
-      if (!state.roomId) {
-        setStatus('画面のテーマを更新しました（ルーム未入室）。');
-        return;
-      }
-
-      setStatus('テーマを送信中...', '通信中');
-      try {
-        var res = await callGasPost({
-          room_id: state.roomId,
-          theme: state.theme,
-          game_count: state.gameCount
-        });
-        applyRoomPayload(res);
-        render();
-        setStatus('テーマを共有しました。', '同期済み');
-      } catch (err) {
-        setStatus('テーマ送信エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
-      }
+      await applyTheme(t, 'テーマ');
     });
 
     function toggleMask() {
