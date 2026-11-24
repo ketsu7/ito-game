@@ -130,7 +130,7 @@
         <button id="successBtn" type="button" class="btn-ok">成功</button>
         <button id="failBtn" type="button" class="btn-ng">失敗</button>
       </div>
-      <button id="nextBtn" type="button" class="btn-primary" style="display:none; margin-top:10px;">次のゲームへ</button>
+      <button id="nextBtn" type="button" class="btn-primary" style="display:none; margin-top:10px;">次のゲームへ（お題も更新）</button>
     </div>
   </div>
 
@@ -521,14 +521,14 @@
       state.finished = true;
       state.lastResult = 'success';
       render();
-      setStatus('「次のゲームへ」を押すと次の回に進みます。');
+      setStatus('「次のゲームへ」を押すと新しいお題と数字に進みます。');
     });
 
     document.getElementById('failBtn').addEventListener('click', function () {
       state.finished = true;
       state.lastResult = 'fail';
       render();
-      setStatus('「次のゲームへ」を押すと次の回に進みます。');
+      setStatus('「次のゲームへ」を押すと新しいお題と数字に進みます。');
     });
 
     document.getElementById('nextBtn').addEventListener('click', async function () {
@@ -537,10 +537,11 @@
       state.masked = false;
       state.finished = false;
       state.lastResult = null;
+      state.theme = pickRandomTheme();
       render();
 
       if (state.roomId) {
-        setStatus('次のゲーム情報を同期中...', '通信中');
+        setStatus('次のゲーム情報とお題を同期中...', '通信中');
         try {
           var res = await callGasPost({
             room_id: state.roomId,
@@ -549,10 +550,12 @@
           });
           applyRoomPayload(res);
           render();
-          setStatus('第' + state.gameCount + 'ゲームを開始しました。', '同期済み');
+          setStatus('第' + state.gameCount + 'ゲームを開始しました（お題も更新）。', '同期済み');
         } catch (err) {
           setStatus('同期エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
         }
+      } else {
+        setStatus('第' + state.gameCount + 'ゲームへ進み、新しいお題を引きました。');
       }
     });
 
