@@ -5,60 +5,347 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ito風 数字並べゲーム</title>
   <style>
+    :root {
+      --bg: #faf6ee;
+      --card: #ffffff;
+      --ink: #1e293b;
+      --muted: #64748b;
+      --border: #1e293b;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --yellow: #f59e0b;
+      --green: #10b981;
+    }
+
+    * { box-sizing: border-box; }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Noto Sans JP", sans-serif;
-      background: #020617;
-      color: #f8fafc;
+      font-family: "Hiragino Maru Gothic ProN", "Rounded Mplus 1c", -apple-system, BlinkMacSystemFont, "Noto Sans JP", sans-serif;
+      background-color: var(--bg);
+      background-image: radial-gradient(#e5dec9 1px, transparent 1px);
+      background-size: 16px 16px;
+      color: var(--ink);
       margin: 0;
-      padding: 16px;
+      padding: 14px;
       -webkit-tap-highlight-color: transparent;
     }
-    .wrap { max-width: 460px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
-    .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 14px; padding: 14px; }
+
+    .wrap {
+      max-width: 460px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ヘッダー */
+    .topbar {
+      background: var(--card);
+      border: 2.5px solid var(--border);
+      border-radius: 16px;
+      padding: 10px 14px;
+      box-shadow: 0 4px 0 var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+    .topbar::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, var(--red) 0% 25%, var(--yellow) 25% 50%, var(--green) 50% 75%, var(--blue) 75% 100%);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+    }
+    .brand-dots {
+      display: inline-flex;
+      gap: 3px;
+    }
+    .brand-dots i {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      display: inline-block;
+    }
+
+    /* 共通カード */
+    .card {
+      background: var(--card);
+      border: 2.5px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 4px 0 var(--border);
+    }
+
     .row { display: flex; gap: 8px; align-items: center; }
     .col { display: flex; flex-direction: column; gap: 8px; }
+
+    .sec-label {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--muted);
+      letter-spacing: 0.4px;
+    }
+
     input {
-      flex: 1; min-width: 0; background: #020617; color: #fff;
-      border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; font-size: 14px;
+      flex: 1;
+      min-width: 0;
+      background: #f8fafc;
+      color: var(--ink);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-weight: 700;
+      outline: none;
     }
+    input:focus {
+      background: #fffbeb;
+      border-color: var(--blue);
+    }
+
     button {
-      border: 0; border-radius: 10px; padding: 10px 14px; font-weight: 700; font-size: 14px; cursor: pointer;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 3px 0 var(--border);
+      transition: transform 0.06s ease, box-shadow 0.06s ease;
     }
-    .btn-primary { background: #6366f1; color: #fff; width: 100%; padding: 13px; }
-    .btn-sub { background: #1e293b; color: #f8fafc; }
-    .btn-ok { background: #10b981; color: #022c22; flex: 1; padding: 13px; }
-    .btn-ng { background: #f43f5e; color: #fff; flex: 1; padding: 13px; }
-    .num-box {
-      background: #020617; border: 1px solid #334155; border-radius: 12px;
-      height: 130px; display: flex; flex-direction: column; align-items: center; justify-content: center;
-      margin-top: 8px; width: 100%;
+    button:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 var(--border);
     }
-    .num-val { font-size: 56px; font-weight: 800; color: #818cf8; }
-    .badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: #1e293b; color: #a5b4fc; }
+
+    .btn-primary {
+      background: var(--blue);
+      color: #ffffff;
+      width: 100%;
+      padding: 12px;
+      font-size: 15px;
+    }
+    .btn-sub {
+      background: #f1f5f9;
+      color: var(--ink);
+    }
+    .btn-draw {
+      background: #fef3c7;
+      color: #92400e;
+      padding: 6px 11px;
+      font-size: 12px;
+    }
+    .btn-send {
+      background: var(--yellow);
+      color: var(--ink);
+    }
+    .btn-ok {
+      background: var(--green);
+      color: #ffffff;
+      flex: 1;
+      padding: 13px;
+      font-size: 15px;
+    }
+    .btn-ng {
+      background: var(--red);
+      color: #ffffff;
+      flex: 1;
+      padding: 13px;
+      font-size: 15px;
+    }
+
+    /* バッジ・参加者チップ */
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      background: #f1f5f9;
+      color: var(--ink);
+      border: 1.5px solid var(--border);
+    }
     .count-pill {
-      display: inline-flex; align-items: center; gap: 4px;
-      padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700;
-      background: #172554; color: #93c5fd; border: 1px solid #1d4ed8;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      background: #dbeafe;
+      color: #1e40af;
+      border: 1.5px solid var(--border);
     }
-    .member-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    .game-pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      background: #fef3c7;
+      color: #92400e;
+      border: 1.5px solid var(--border);
+    }
+    .member-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 2px;
+    }
     .member-chip {
-      font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
-      background: #020617; border: 1px solid #334155; color: #e2e8f0;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #f8fafc;
+      border: 1.5px solid var(--border);
+      color: var(--ink);
     }
-    .member-me { border-color: #6366f1; color: #c7d2fe; }
-    .notice { font-size: 12px; color: #94a3b8; min-height: 1.2em; }
+    .member-me {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .notice {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      min-height: 1.2em;
+    }
+
+    /* テーマ枠 */
+    .theme-card {
+      background: #fffdf7;
+    }
+    .theme-box {
+      font-size: 17px;
+      font-weight: 900;
+      line-height: 1.45;
+      padding: 12px;
+      background: #fef9c3;
+      border: 2px dashed #ca8a04;
+      border-radius: 12px;
+      color: #422006;
+      text-align: center;
+    }
+
+    /* ボドゲ風ナンバーカード */
+    .card-stage {
+      display: flex;
+      justify-content: center;
+      padding: 8px 0 4px;
+    }
+    .num-box {
+      width: 176px;
+      height: 228px;
+      border-radius: 20px;
+      border: 3px solid var(--border);
+      background: #ffffff;
+      box-shadow: 0 6px 0 var(--border);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      transition: transform 0.12s ease, background 0.15s ease;
+    }
+    .num-box::after {
+      content: "";
+      position: absolute;
+      inset: 7px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 13px;
+      pointer-events: none;
+    }
+    .num-box.is-masked {
+      background-color: #ef4444;
+      background-image:
+        repeating-linear-gradient(45deg, rgba(255,255,255,0.16) 0, rgba(255,255,255,0.16) 8px, transparent 8px, transparent 16px),
+        repeating-linear-gradient(-45deg, rgba(255,255,255,0.16) 0, rgba(255,255,255,0.16) 8px, transparent 8px, transparent 16px);
+    }
+    .num-box.is-masked::after {
+      border-color: rgba(255, 255, 255, 0.7);
+    }
+    .corner-num {
+      position: absolute;
+      font-size: 15px;
+      font-weight: 900;
+      color: var(--red);
+      line-height: 1;
+    }
+    .corner-tl { top: 14px; left: 15px; }
+    .corner-br { bottom: 14px; right: 15px; transform: rotate(180deg); }
+    .num-val {
+      font-size: 68px;
+      font-weight: 900;
+      color: var(--ink);
+      line-height: 1;
+      letter-spacing: -2px;
+    }
+    .card-sub-label {
+      margin-top: 8px;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--muted);
+    }
+    .mask-badge {
+      background: #ffffff;
+      color: var(--red);
+      border: 2px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      box-shadow: 0 3px 0 var(--border);
+    }
+
+    /* 結果バナー */
     .result-banner {
-      margin-top: 10px; padding: 10px 12px; border-radius: 10px;
-      font-weight: 800; font-size: 14px; text-align: center; display: none;
+      margin-top: 12px;
+      padding: 11px 12px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      font-weight: 900;
+      font-size: 14px;
+      text-align: center;
+      display: none;
     }
-    .result-ok { background: rgba(16, 185, 129, 0.18); border: 1px solid #10b981; color: #6ee7b7; }
-    .result-ng { background: rgba(244, 63, 94, 0.18); border: 1px solid #f43f5e; color: #fda4af; }
+    .result-ok {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .result-ng {
+      background: #fee2e2;
+      color: #991b1b;
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="row" style="justify-content: space-between;">
-      <strong>ito風 1-100</strong>
+    <div class="topbar">
+      <div class="brand">
+        <span class="brand-dots">
+          <i style="background:#ef4444;"></i>
+          <i style="background:#f59e0b;"></i>
+          <i style="background:#10b981;"></i>
+          <i style="background:#3b82f6;"></i>
+        </span>
+        <span>ito風 1-100</span>
+      </div>
       <div class="row">
         <span id="memberCountBadge" class="count-pill">参加者 0人</span>
         <span id="badge" class="badge">準備完了</span>
@@ -67,8 +354,8 @@
 
     <div class="card col" style="gap:10px;">
       <div class="row" style="justify-content: space-between;">
-        <span style="font-size:12px; color:#94a3b8;">あなたのニックネーム</span>
-        <span style="font-size:12px;">第 <strong id="gameCount">1</strong> ゲーム</span>
+        <span class="sec-label">プレイヤー名</span>
+        <span class="game-pill">第 <strong id="gameCount">1</strong> ゲーム</span>
       </div>
       <form id="nicknameForm" class="row">
         <input id="nicknameInput" type="text" maxlength="20" placeholder="ニックネームを入力（例：たくみ）" />
@@ -79,58 +366,64 @@
 
     <div class="card col" style="gap:10px;">
       <div class="row" style="justify-content: space-between;">
-        <span style="font-size:12px; color:#94a3b8;">ルーム管理</span>
+        <span class="sec-label">ルーム管理</span>
       </div>
       <button id="createRoomBtn" type="button" class="btn-primary">＋ 新しいルームを作る（6桁ID発行）</button>
       <form id="joinRoomForm" class="row">
         <input id="joinRoomInput" type="text" maxlength="12" placeholder="ルームIDを入力（例：K7M2P9）" />
         <button type="submit" class="btn-sub">入る</button>
       </form>
-      <div class="row" style="justify-content: space-between;">
+      <div class="row" style="justify-content: space-between; background:#f8fafc; padding:8px 12px; border-radius:12px; border:1.5px solid #cbd5e1;">
         <div>
-          <div style="font-size:11px; color:#94a3b8;">現在のルームID</div>
-          <div id="roomIdDisp" style="font-size:18px; font-weight:800; letter-spacing:2px;">------</div>
+          <div style="font-size:11px; font-weight:700; color:var(--muted);">現在のルームID</div>
+          <div id="roomIdDisp" style="font-size:19px; font-weight:900; letter-spacing:2px;">------</div>
         </div>
         <div class="row">
-          <button id="copyIdBtn" type="button" class="btn-sub">IDコピー</button>
-          <button id="refreshBtn" type="button" class="btn-sub">最新読込</button>
+          <button id="copyIdBtn" type="button" class="btn-sub" style="padding:8px 10px; font-size:12px;">IDコピー</button>
+          <button id="refreshBtn" type="button" class="btn-sub" style="padding:8px 10px; font-size:12px;">最新読込</button>
         </div>
       </div>
       <button id="copyInviteBtn" type="button" class="btn-sub" style="width:100%;">招待案内文をコピー</button>
       <div id="statusMsg" class="notice"></div>
     </div>
 
-    <div class="card col">
+    <div class="card theme-card col">
       <div class="row" style="justify-content: space-between;">
-        <span style="font-size:12px; color:#94a3b8;">今回のテーマ</span>
-        <button id="drawThemeBtn" type="button" class="btn-sub" style="padding:5px 10px; font-size:12px;">お題を引く</button>
+        <span class="sec-label">今回のテーマ</span>
+        <button id="drawThemeBtn" type="button" class="btn-draw">🎲 お題を引く</button>
       </div>
-      <div id="themeDisp" style="font-size:16px; font-weight:700; padding:8px; background:#020617; border-radius:8px;">
+      <div id="themeDisp" class="theme-box">
         テーマを入力してください
       </div>
       <form id="themeForm" class="row">
-        <input id="themeInput" type="text" maxlength="120" placeholder="新しいテーマを入力" />
-        <button type="submit" class="btn-sub" style="background:#10b981; color:#022c22;">送信</button>
+        <input id="themeInput" type="text" maxlength="120" placeholder="オリジナルお題を入力" />
+        <button type="submit" class="btn-send">送信</button>
       </form>
     </div>
 
     <div class="card">
       <div class="row" style="justify-content: space-between;">
-        <span style="font-size:12px; color:#94a3b8;">あなたの数字（1〜100）</span>
-        <button id="maskBtn" type="button" class="btn-sub">隠す</button>
+        <span class="sec-label">あなたのナンバーカード</span>
+        <button id="maskBtn" type="button" class="btn-sub" style="padding:6px 11px; font-size:12px;">隠す</button>
       </div>
-      <button id="cardBtn" type="button" class="num-box">
-        <span id="numVal" class="num-val">--</span>
-        <span id="maskVal" style="display:none; font-size:20px; font-weight:700; color:#64748b;">● ● ●</span>
-      </button>
+
+      <div class="card-stage">
+        <button id="cardBtn" type="button" class="num-box">
+          <span id="cornerTl" class="corner-num corner-tl">--</span>
+          <span id="numVal" class="num-val">--</span>
+          <span id="cardSubLabel" class="card-sub-label">タップで裏返す</span>
+          <span id="cornerBr" class="corner-num corner-br">--</span>
+          <span id="maskVal" class="mask-badge" style="display:none;">SECRET</span>
+        </button>
+      </div>
 
       <div id="resultBanner" class="result-banner"></div>
 
-      <div id="judgeRow" class="row" style="margin-top:10px;">
-        <button id="successBtn" type="button" class="btn-ok">成功</button>
-        <button id="failBtn" type="button" class="btn-ng">失敗</button>
+      <div id="judgeRow" class="row" style="margin-top:12px;">
+        <button id="successBtn" type="button" class="btn-ok">成功！</button>
+        <button id="failBtn" type="button" class="btn-ng">失敗…</button>
       </div>
-      <button id="nextBtn" type="button" class="btn-primary" style="display:none; margin-top:10px;">次のゲームへ（お題も更新）</button>
+      <button id="nextBtn" type="button" class="btn-primary" style="display:none; margin-top:12px;">次のゲームへ（お題も更新）</button>
     </div>
   </div>
 
@@ -308,9 +601,34 @@
       document.getElementById('gameCount').textContent = state.gameCount;
       document.getElementById('roomIdDisp').textContent = state.roomId || '------';
       document.getElementById('themeDisp').textContent = state.theme;
-      document.getElementById('numVal').textContent = state.number;
-      document.getElementById('numVal').style.display = state.masked ? 'none' : 'inline';
-      document.getElementById('maskVal').style.display = state.masked ? 'inline' : 'none';
+
+      var cardBtn = document.getElementById('cardBtn');
+      var numVal = document.getElementById('numVal');
+      var cornerTl = document.getElementById('cornerTl');
+      var cornerBr = document.getElementById('cornerBr');
+      var cardSubLabel = document.getElementById('cardSubLabel');
+      var maskVal = document.getElementById('maskVal');
+
+      numVal.textContent = state.number;
+      cornerTl.textContent = state.number;
+      cornerBr.textContent = state.number;
+
+      if (state.masked) {
+        cardBtn.classList.add('is-masked');
+        numVal.style.display = 'none';
+        cornerTl.style.display = 'none';
+        cornerBr.style.display = 'none';
+        cardSubLabel.style.display = 'none';
+        maskVal.style.display = 'inline-block';
+      } else {
+        cardBtn.classList.remove('is-masked');
+        numVal.style.display = 'inline';
+        cornerTl.style.display = 'inline';
+        cornerBr.style.display = 'inline';
+        cardSubLabel.style.display = 'inline';
+        maskVal.style.display = 'none';
+      }
+
       document.getElementById('maskBtn').textContent = state.masked ? '見る' : '隠す';
       renderMembers();
 
@@ -356,230 +674,4 @@
 
     async function callGasGet(roomId) {
       var url = GAS_URL + '?room=' + encodeURIComponent(roomId) + '&_t=' + Date.now();
-      if (state.nickname) {
-        url += '&nickname=' + encodeURIComponent(state.nickname);
-      }
-      var res = await fetch(url);
-      return await res.json();
-    }
-
-    async function callGasPost(payload) {
-      var body = Object.assign({ nickname: state.nickname }, payload);
-      var res = await fetch(GAS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(body)
-      });
-      return await res.json();
-    }
-
-    function startAutoSync() {
-      if (syncTimer) clearInterval(syncTimer);
-      syncTimer = setInterval(async function () {
-        if (!state.roomId || isSyncing || document.hidden) return;
-        isSyncing = true;
-        try {
-          var data = await callGasGet(state.roomId);
-          if (data && data.ok !== false) {
-            applyRoomPayload(data);
-            render();
-          }
-        } catch (e) {
-          // バックグラウンド同期の単発エラーは無視
-        } finally {
-          isSyncing = false;
-        }
-      }, 4000);
-    }
-
-    async function enterRoom(id, initialTheme, keepNumber) {
-      var clean = String(id || '').trim().toUpperCase();
-      if (!clean) {
-        setStatus('ルームIDを入力してください。');
-        return;
-      }
-      if (!state.nickname) {
-        var typedNick = document.getElementById('nicknameInput').value.trim();
-        if (typedNick) {
-          state.nickname = typedNick;
-        }
-      }
-      var isNewRoomSwitch = state.roomId !== clean;
-      state.roomId = clean;
-      if (isNewRoomSwitch) {
-        state.members = [];
-        state.serverMemberCount = null;
-      }
-      if (!keepNumber) {
-        state.finished = false;
-        state.lastResult = null;
-        state.masked = false;
-        state.number = Math.floor(Math.random() * 100) + 1;
-      }
-      mergeLocalMember();
-      render();
-      setStatus('ルーム「' + clean + '」に接続中...', '通信中');
-
-      try {
-        var data = await callGasGet(clean);
-        applyRoomPayload(data);
-        if ((!data || !data.theme || String(data.theme).trim() === '') && initialTheme) {
-          state.theme = initialTheme;
-        }
-        if (state.nickname || initialTheme) {
-          var postRes = await callGasPost({
-            room_id: clean,
-            theme: state.theme,
-            game_count: state.gameCount,
-            action: 'join'
-          });
-          applyRoomPayload(postRes);
-        }
-        render();
-        startAutoSync();
-        setStatus('ルーム「' + clean + '」に入室しました。', '同期済み');
-      } catch (err) {
-        setStatus('通信エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
-      }
-    }
-
-    document.getElementById('nicknameForm').addEventListener('submit', async function (e) {
-      e.preventDefault();
-      var inp = document.getElementById('nicknameInput');
-      var nick = inp.value.trim();
-      if (!nick) {
-        setStatus('ニックネームを入力してください。');
-        return;
-      }
-      state.nickname = nick;
-      mergeLocalMember();
-      render();
-
-      if (!state.roomId) {
-        setStatus('ニックネームを「' + nick + '」に設定しました。ルームを作成するか入室してください。');
-        return;
-      }
-
-      setStatus('ニックネームをルームに反映中...', '通信中');
-      try {
-        var res = await callGasPost({
-          room_id: state.roomId,
-          theme: state.theme,
-          game_count: state.gameCount,
-          action: 'join'
-        });
-        applyRoomPayload(res);
-        render();
-        setStatus('ニックネーム「' + nick + '」を反映しました。', '同期済み');
-      } catch (err) {
-        setStatus('ニックネーム反映エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
-      }
-    });
-
-    document.getElementById('createRoomBtn').addEventListener('click', function () {
-      enterRoom(genId(), state.theme, false);
-    });
-
-    document.getElementById('joinRoomForm').addEventListener('submit', function (e) {
-      e.preventDefault();
-      var inp = document.getElementById('joinRoomInput');
-      var v = inp.value;
-      inp.value = '';
-      enterRoom(v, '', false);
-    });
-
-    document.getElementById('refreshBtn').addEventListener('click', function () {
-      if (!state.roomId) {
-        setStatus('先にルームを作成または入室してください。');
-        return;
-      }
-      enterRoom(state.roomId, '', true);
-    });
-
-    document.getElementById('drawThemeBtn').addEventListener('click', async function () {
-      var picked = pickRandomTheme();
-      await applyTheme(picked, 'ランダムお題');
-    });
-
-    document.getElementById('themeForm').addEventListener('submit', async function (e) {
-      e.preventDefault();
-      var inp = document.getElementById('themeInput');
-      var t = inp.value.trim();
-      if (!t) return;
-      inp.value = '';
-      await applyTheme(t, 'テーマ');
-    });
-
-    function toggleMask() {
-      state.masked = !state.masked;
-      render();
-    }
-    document.getElementById('maskBtn').addEventListener('click', toggleMask);
-    document.getElementById('cardBtn').addEventListener('click', toggleMask);
-
-    document.getElementById('successBtn').addEventListener('click', function () {
-      state.finished = true;
-      state.lastResult = 'success';
-      render();
-      setStatus('「次のゲームへ」を押すと新しいお題と数字に進みます。');
-    });
-
-    document.getElementById('failBtn').addEventListener('click', function () {
-      state.finished = true;
-      state.lastResult = 'fail';
-      render();
-      setStatus('「次のゲームへ」を押すと新しいお題と数字に進みます。');
-    });
-
-    document.getElementById('nextBtn').addEventListener('click', async function () {
-      state.gameCount += 1;
-      state.number = Math.floor(Math.random() * 100) + 1;
-      state.masked = false;
-      state.finished = false;
-      state.lastResult = null;
-      state.theme = pickRandomTheme();
-      render();
-
-      if (state.roomId) {
-        setStatus('次のゲーム情報とお題を同期中...', '通信中');
-        try {
-          var res = await callGasPost({
-            room_id: state.roomId,
-            theme: state.theme,
-            game_count: state.gameCount
-          });
-          applyRoomPayload(res);
-          render();
-          setStatus('第' + state.gameCount + 'ゲームを開始しました（お題も更新）。', '同期済み');
-        } catch (err) {
-          setStatus('同期エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
-        }
-      } else {
-        setStatus('第' + state.gameCount + 'ゲームへ進み、新しいお題を引きました。');
-      }
-    });
-
-    async function copyText(str, okMsg) {
-      try {
-        await navigator.clipboard.writeText(str);
-        setStatus(okMsg);
-      } catch (e) {
-        setStatus('コピーできませんでした: ' + str);
-      }
-    }
-
-    document.getElementById('copyIdBtn').addEventListener('click', function () {
-      if (!state.roomId) { setStatus('コピーするルームIDがありません。'); return; }
-      copyText(state.roomId, 'ルームID「' + state.roomId + '」をコピーしました。');
-    });
-
-    document.getElementById('copyInviteBtn').addEventListener('click', function () {
-      if (!state.roomId) { setStatus('先にルームを作成してください。'); return; }
-      var msg = 'ito風ゲームに参加しよう！\nURL: ' + SHARE_URL + '\nルームID: ' + state.roomId + '\nURLを開いてルームIDを入力して「入る」を押してね';
-      copyText(msg, 'URLとルームID入りの招待案内文をコピーしました。');
-    });
-
-    render();
-  </script>
-</body>
-</html>
+      if (state.nicknam
