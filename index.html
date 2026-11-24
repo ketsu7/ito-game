@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ito風 数字並べゲーム</title>
+  <title>ito風 数字並べゲーム（通信診断）</title>
   <style>
     :root {
       --bg: #faf6ee;
@@ -16,66 +16,15 @@
       --yellow: #f59e0b;
       --green: #10b981;
     }
-
     * { box-sizing: border-box; }
-
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
       background-color: var(--bg);
-      background-image: radial-gradient(#e5dec9 1px, transparent 1px);
-      background-size: 16px 16px;
       color: var(--ink);
       margin: 0;
       padding: 14px;
-      -webkit-tap-highlight-color: transparent;
     }
-
-    .wrap {
-      max-width: 460px;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .topbar {
-      background: var(--card);
-      border: 2.5px solid var(--border);
-      border-radius: 16px;
-      padding: 10px 14px;
-      box-shadow: 0 4px 0 var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: relative;
-      overflow: hidden;
-    }
-    .topbar::before {
-      content: "";
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 5px;
-      background: linear-gradient(90deg, var(--red) 0% 25%, var(--yellow) 25% 50%, var(--green) 50% 75%, var(--blue) 75% 100%);
-    }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 18px;
-      font-weight: 900;
-    }
-    .brand-dots {
-      display: inline-flex;
-      gap: 3px;
-    }
-    .brand-dots i {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      border: 1.5px solid var(--border);
-      display: inline-block;
-    }
-
+    .wrap { max-width: 460px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
     .card {
       background: var(--card);
       border: 2.5px solid var(--border);
@@ -83,308 +32,97 @@
       padding: 14px;
       box-shadow: 0 4px 0 var(--border);
     }
-
     .row { display: flex; gap: 8px; align-items: center; }
     .col { display: flex; flex-direction: column; gap: 8px; }
-
-    .sec-label {
-      font-size: 12px;
-      font-weight: 800;
-      color: var(--muted);
-    }
-
     input {
-      flex: 1;
-      min-width: 0;
-      background: #f8fafc;
-      color: var(--ink);
-      border: 2px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 12px;
-      font-size: 14px;
-      font-weight: 700;
-      outline: none;
+      flex: 1; min-width: 0; background: #f8fafc; color: var(--ink);
+      border: 2px solid var(--border); border-radius: 12px; padding: 10px 12px; font-size: 14px; font-weight: 700;
     }
-    input:focus {
-      background: #fffbeb;
-      border-color: var(--blue);
-    }
-
     button {
-      border: 2px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 14px;
-      font-weight: 800;
-      font-size: 14px;
-      cursor: pointer;
-      box-shadow: 0 3px 0 var(--border);
+      border: 2px solid var(--border); border-radius: 12px; padding: 10px 14px;
+      font-weight: 800; font-size: 14px; cursor: pointer; box-shadow: 0 3px 0 var(--border);
     }
-    button:active {
-      transform: translateY(2px);
-      box-shadow: 0 1px 0 var(--border);
-    }
-
-    .btn-primary {
-      background: var(--blue);
-      color: #ffffff;
-      width: 100%;
-      padding: 12px;
-      font-size: 15px;
-    }
-    .btn-sub {
-      background: #f1f5f9;
-      color: var(--ink);
-    }
-    .btn-draw {
-      background: #fef3c7;
-      color: #92400e;
-      padding: 6px 11px;
-      font-size: 12px;
-    }
-    .btn-send {
-      background: var(--yellow);
-      color: var(--ink);
-    }
-    .btn-ok {
-      background: var(--green);
-      color: #ffffff;
-      flex: 1;
-      padding: 13px;
-      font-size: 15px;
-    }
-    .btn-ng {
-      background: var(--red);
-      color: #ffffff;
-      flex: 1;
-      padding: 13px;
-      font-size: 15px;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 3px 9px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 800;
-      background: #f1f5f9;
-      color: var(--ink);
-      border: 1.5px solid var(--border);
-    }
-    .count-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 800;
-      background: #dbeafe;
-      color: #1e40af;
-      border: 1.5px solid var(--border);
-    }
-    .game-pill {
-      display: inline-block;
-      padding: 2px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 800;
-      background: #fef3c7;
-      color: #92400e;
-      border: 1.5px solid var(--border);
-    }
-    .member-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 2px;
-    }
-    .member-chip {
-      font-size: 12px;
-      font-weight: 800;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: #f8fafc;
-      border: 1.5px solid var(--border);
-      color: var(--ink);
-    }
-    .member-me {
-      background: #fef3c7;
-      color: #92400e;
-    }
-
-    .notice {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--muted);
-      min-height: 1.2em;
-    }
-
-    .theme-card {
-      background: #fffdf7;
-    }
-    .theme-box {
-      font-size: 17px;
-      font-weight: 900;
-      line-height: 1.45;
-      padding: 12px;
-      background: #fef9c3;
-      border: 2px dashed #ca8a04;
-      border-radius: 12px;
-      color: #422006;
-      text-align: center;
-    }
-
-    .card-stage {
-      display: flex;
-      justify-content: center;
-      padding: 8px 0 4px;
-    }
+    .btn-primary { background: var(--blue); color: #fff; width: 100%; padding: 12px; }
+    .btn-sub { background: #f1f5f9; color: var(--ink); }
+    .btn-draw { background: #fef3c7; color: #92400e; padding: 6px 11px; font-size: 12px; }
+    .btn-send { background: var(--yellow); color: var(--ink); }
+    .btn-ok { background: var(--green); color: #fff; flex: 1; padding: 13px; }
+    .btn-ng { background: var(--red); color: #fff; flex: 1; padding: 13px; }
+    .badge { padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 800; background: #f1f5f9; border: 1.5px solid var(--border); }
+    .count-pill { padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; background: #dbeafe; color: #1e40af; border: 1.5px solid var(--border); }
+    .member-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .member-chip { font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 999px; background: #f8fafc; border: 1.5px solid var(--border); }
+    .member-me { background: #fef3c7; color: #92400e; }
+    .theme-box { font-size: 17px; font-weight: 900; padding: 12px; background: #fef9c3; border: 2px dashed #ca8a04; border-radius: 12px; text-align: center; }
+    .card-stage { display: flex; justify-content: center; padding: 8px 0; }
     .num-box {
-      width: 176px;
-      height: 228px;
-      border-radius: 20px;
-      border: 3px solid var(--border);
-      background: #ffffff;
-      box-shadow: 0 6px 0 var(--border);
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 12px;
+      width: 176px; height: 228px; border-radius: 20px; border: 3px solid var(--border);
+      background: #fff; box-shadow: 0 6px 0 var(--border); position: relative;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
-    .num-box::after {
-      content: "";
-      position: absolute;
-      inset: 7px;
-      border: 1.5px solid #cbd5e1;
-      border-radius: 13px;
-      pointer-events: none;
-    }
-    .num-box.is-masked {
-      background-color: #ef4444;
-      background-image:
-        repeating-linear-gradient(45deg, rgba(255,255,255,0.16) 0, rgba(255,255,255,0.16) 8px, transparent 8px, transparent 16px),
-        repeating-linear-gradient(-45deg, rgba(255,255,255,0.16) 0, rgba(255,255,255,0.16) 8px, transparent 8px, transparent 16px);
-    }
-    .num-box.is-masked::after {
-      border-color: rgba(255, 255, 255, 0.7);
-    }
-    .corner-num {
-      position: absolute;
-      font-size: 15px;
-      font-weight: 900;
-      color: var(--red);
-      line-height: 1;
-    }
+    .num-box.is-masked { background: #ef4444; color: #fff; }
+    .corner-num { position: absolute; font-size: 15px; font-weight: 900; color: var(--red); }
     .corner-tl { top: 14px; left: 15px; }
     .corner-br { bottom: 14px; right: 15px; transform: rotate(180deg); }
-    .num-val {
-      font-size: 68px;
-      font-weight: 900;
-      color: var(--ink);
-      line-height: 1;
-      letter-spacing: -2px;
+    .num-val { font-size: 68px; font-weight: 900; line-height: 1; }
+    .mask-badge { background: #fff; color: var(--red); border: 2px solid var(--border); border-radius: 999px; padding: 6px 14px; font-weight: 900; }
+    .notice {
+      font-size: 12px; font-weight: 700; color: #0f172a; background: #f1f5f9;
+      padding: 8px 10px; border-radius: 10px; border: 1.5px solid #cbd5e1; word-break: break-all;
     }
-    .card-sub-label {
-      margin-top: 8px;
-      font-size: 11px;
-      font-weight: 800;
-      color: var(--muted);
-    }
-    .mask-badge {
-      background: #ffffff;
-      color: var(--red);
-      border: 2px solid var(--border);
-      border-radius: 999px;
-      padding: 6px 14px;
-      font-size: 15px;
-      font-weight: 900;
-      letter-spacing: 2px;
-      box-shadow: 0 3px 0 var(--border);
-    }
-
-    .result-banner {
-      margin-top: 12px;
-      padding: 11px 12px;
-      border-radius: 12px;
-      border: 2px solid var(--border);
-      font-weight: 900;
-      font-size: 14px;
-      text-align: center;
-      display: none;
-    }
-    .result-ok {
-      background: #d1fae5;
-      color: #065f46;
-    }
-    .result-ng {
-      background: #fee2e2;
-      color: #991b1b;
-    }
+    .result-banner { margin-top: 12px; padding: 11px; border-radius: 12px; border: 2px solid var(--border); font-weight: 900; text-align: center; display: none; }
+    .result-ok { background: #d1fae5; color: #065f46; }
+    .result-ng { background: #fee2e2; color: #991b1b; }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="topbar">
-      <div class="brand">
-        <span class="brand-dots">
-          <i style="background:#ef4444;"></i>
-          <i style="background:#f59e0b;"></i>
-          <i style="background:#10b981;"></i>
-          <i style="background:#3b82f6;"></i>
-        </span>
-        <span>ito風 1-100</span>
-      </div>
+    <div class="card row" style="justify-content: space-between;">
+      <strong>ito風 1-100</strong>
       <div class="row">
         <span id="memberCountBadge" class="count-pill">参加者 0人</span>
         <span id="badge" class="badge">準備完了</span>
       </div>
     </div>
 
-    <div class="card col" style="gap:10px;">
+    <div class="card col">
       <div class="row" style="justify-content: space-between;">
-        <span class="sec-label">プレイヤー名</span>
-        <span class="game-pill">第 <strong id="gameCount">1</strong> ゲーム</span>
+        <span style="font-size:12px; font-weight:800; color:var(--muted);">プレイヤー名</span>
+        <span style="font-size:12px; font-weight:800;">第 <strong id="gameCount">1</strong> ゲーム</span>
       </div>
       <form id="nicknameForm" class="row">
-        <input id="nicknameInput" type="text" maxlength="20" placeholder="ニックネームを入力（例：たくみ）" />
+        <input id="nicknameInput" type="text" maxlength="20" placeholder="ニックネームを入力" />
         <button type="submit" class="btn-sub">確定</button>
       </form>
       <div id="memberList" class="member-list"></div>
     </div>
 
-    <div class="card col" style="gap:10px;">
-      <div class="row" style="justify-content: space-between;">
-        <span class="sec-label">ルーム管理</span>
-      </div>
-      <button id="createRoomBtn" type="button" class="btn-primary">+ 新しいルームを作る（6桁ID発行）</button>
+    <div class="card col">
+      <button id="createRoomBtn" type="button" class="btn-primary">+ 新しいルームを作る</button>
       <form id="joinRoomForm" class="row">
-        <input id="joinRoomInput" type="text" maxlength="12" placeholder="ルームIDを入力（例：K7M2P9）" />
+        <input id="joinRoomInput" type="text" maxlength="12" placeholder="ルームIDを入力" />
         <button type="submit" class="btn-sub">入る</button>
       </form>
-      <div class="row" style="justify-content: space-between; background:#f8fafc; padding:8px 12px; border-radius:12px; border:1.5px solid #cbd5e1;">
+      <div class="row" style="justify-content: space-between;">
         <div>
-          <div style="font-size:11px; font-weight:700; color:var(--muted);">現在のルームID</div>
+          <div style="font-size:11px; color:var(--muted);">現在のルームID</div>
           <div id="roomIdDisp" style="font-size:19px; font-weight:900; letter-spacing:2px;">------</div>
         </div>
         <div class="row">
-          <button id="copyIdBtn" type="button" class="btn-sub" style="padding:8px 10px; font-size:12px;">IDコピー</button>
-          <button id="refreshBtn" type="button" class="btn-sub" style="padding:8px 10px; font-size:12px;">最新読込</button>
+          <button id="copyIdBtn" type="button" class="btn-sub">IDコピー</button>
+          <button id="refreshBtn" type="button" class="btn-sub">最新読込</button>
         </div>
       </div>
       <button id="copyInviteBtn" type="button" class="btn-sub" style="width:100%;">招待案内文をコピー</button>
-      <div id="statusMsg" class="notice"></div>
+      <div id="statusMsg" class="notice">通信ログがここに表示されます</div>
     </div>
 
-    <div class="card theme-card col">
+    <div class="card col">
       <div class="row" style="justify-content: space-between;">
-        <span class="sec-label">今回のテーマ</span>
+        <span style="font-size:12px; font-weight:800; color:var(--muted);">今回のテーマ</span>
         <button id="drawThemeBtn" type="button" class="btn-draw">お題を引く</button>
       </div>
-      <div id="themeDisp" class="theme-box">
-        スーパー銭湯のあとに飲みたいもの
-      </div>
+      <div id="themeDisp" class="theme-box">スーパー銭湯のあとに飲みたいもの</div>
       <form id="themeForm" class="row">
         <input id="themeInput" type="text" maxlength="120" placeholder="オリジナルお題を入力" />
         <button type="submit" class="btn-send">送信</button>
@@ -393,22 +131,18 @@
 
     <div class="card">
       <div class="row" style="justify-content: space-between;">
-        <span class="sec-label">あなたのナンバーカード</span>
-        <button id="maskBtn" type="button" class="btn-sub" style="padding:6px 11px; font-size:12px;">隠す</button>
+        <span style="font-size:12px; font-weight:800; color:var(--muted);">あなたのナンバーカード</span>
+        <button id="maskBtn" type="button" class="btn-sub">隠す</button>
       </div>
-
       <div class="card-stage">
         <button id="cardBtn" type="button" class="num-box">
           <span id="cornerTl" class="corner-num corner-tl">42</span>
           <span id="numVal" class="num-val">42</span>
-          <span id="cardSubLabel" class="card-sub-label">タップで裏返す</span>
           <span id="cornerBr" class="corner-num corner-br">42</span>
           <span id="maskVal" class="mask-badge" style="display:none;">SECRET</span>
         </button>
       </div>
-
       <div id="resultBanner" class="result-banner"></div>
-
       <div id="judgeRow" class="row" style="margin-top:12px;">
         <button id="successBtn" type="button" class="btn-ok">成功</button>
         <button id="failBtn" type="button" class="btn-ng">失敗</button>
@@ -465,77 +199,48 @@
       '明日への活力になる一言や出来事'
     ];
 
-    function drawNum() {
-      return Math.floor(Math.random() * 100) + 1;
-    }
+    function drawNum() { return Math.floor(Math.random() * 100) + 1; }
 
     var state = {
-      roomId: '',
-      nickname: '',
-      members: [],
-      serverMemberCount: null,
-      theme: THEMES[0],
-      lastThemeIndex: 0,
-      gameCount: 1,
-      number: drawNum(),
-      masked: false,
-      finished: false,
-      lastResult: null
+      roomId: '', nickname: '', members: [], serverMemberCount: null,
+      theme: THEMES[0], lastThemeIndex: 0, gameCount: 1,
+      number: drawNum(), masked: false, finished: false, lastResult: null
     };
-
-    var syncTimer = null;
-    var isSyncing = false;
-    var reqSeq = 0;
+    var syncTimer = null, isSyncing = false, reqSeq = 0;
 
     function setStatus(text, badgeText) {
-      var s = document.getElementById('statusMsg');
-      if (s) s.textContent = text || '';
-      var b = document.getElementById('badge');
-      if (b && badgeText) b.textContent = badgeText;
+      document.getElementById('statusMsg').textContent = text || '';
+      if (badgeText) document.getElementById('badge').textContent = badgeText;
     }
 
     function genId() {
-      var out = '';
-      for (var i = 0; i < 6; i++) {
-        out += CHARS[Math.floor(Math.random() * CHARS.length)];
-      }
-      return out;
+      var s = '';
+      for (var i = 0; i < 6; i++) s += CHARS[Math.floor(Math.random() * CHARS.length)];
+      return s;
     }
 
     function pickRandomTheme() {
       if (THEMES.length <= 1) return THEMES[0] || '今回のテーマ';
       var idx = Math.floor(Math.random() * THEMES.length);
-      if (idx === state.lastThemeIndex) {
-        idx = (idx + 1) % THEMES.length;
-      }
+      if (idx === state.lastThemeIndex) idx = (idx + 1) % THEMES.length;
       state.lastThemeIndex = idx;
       return THEMES[idx];
     }
 
     function normalizeMembers(raw) {
       if (!Array.isArray(raw)) return [];
-      var seen = {};
-      var list = [];
+      var seen = {}, list = [];
       for (var i = 0; i < raw.length; i++) {
-        var item = raw[i];
-        var name = typeof item === 'string'
-          ? item
-          : (item && (item.nickname || item.name) ? String(item.nickname || item.name) : '');
+        var name = typeof raw[i] === 'string' ? raw[i] : (raw[i] && (raw[i].nickname || raw[i].name) ? String(raw[i].nickname || raw[i].name) : '');
         name = name.trim();
-        if (name && !seen[name]) {
-          seen[name] = true;
-          list.push(name);
-        }
+        if (name && !seen[name]) { seen[name] = true; list.push(name); }
       }
       return list;
     }
 
     function mergeLocalMember() {
       var nick = String(state.nickname || '').trim();
-      if (!nick) return;
-      if (state.members.indexOf(nick) === -1) {
-        state.members.push(nick);
-      }
+      if (nick && state.members.indexOf(nick) === -1) state.members.push(nick);
     }
 
     function getMemberCount() {
@@ -546,131 +251,100 @@
     }
 
     function renderMembers() {
-      var count = getMemberCount();
-      document.getElementById('memberCountBadge').textContent = '参加者 ' + count + '人';
-
+      document.getElementById('memberCountBadge').textContent = '参加者 ' + getMemberCount() + '人';
       var box = document.getElementById('memberList');
       box.innerHTML = '';
       if (!state.members.length) {
-        var empty = document.createElement('span');
-        empty.className = 'notice';
-        empty.textContent = state.roomId
-          ? 'ニックネームを入力すると参加者一覧に表示されます'
-          : 'ルームに入ると参加者が表示されます';
-        box.appendChild(empty);
+        var sp = document.createElement('span');
+        sp.style.fontSize = '12px';
+        sp.style.color = 'var(--muted)';
+        sp.textContent = state.roomId ? 'ニックネームを入力すると参加者一覧に表示されます' : 'ルームに入ると参加者が表示されます';
+        box.appendChild(sp);
         return;
       }
-
       for (var i = 0; i < state.members.length; i++) {
-        var name = state.members[i];
         var chip = document.createElement('span');
-        chip.className = 'member-chip' + (name === state.nickname ? ' member-me' : '');
-        chip.textContent = name + (name === state.nickname ? '（あなた）' : '');
+        chip.className = 'member-chip' + (state.members[i] === state.nickname ? ' member-me' : '');
+        chip.textContent = state.members[i] + (state.members[i] === state.nickname ? '（あなた）' : '');
         box.appendChild(chip);
       }
     }
 
     function render() {
-      var num = Number(state.number);
-      if (!num || num < 1 || num > 100) {
-        num = drawNum();
-        state.number = num;
-      }
-
+      var num = Number(state.number) || drawNum();
+      state.number = num;
       document.getElementById('gameCount').textContent = state.gameCount;
       document.getElementById('roomIdDisp').textContent = state.roomId || '------';
       document.getElementById('themeDisp').textContent = state.theme;
+      document.getElementById('numVal').textContent = String(num);
+      document.getElementById('cornerTl').textContent = String(num);
+      document.getElementById('cornerBr').textContent = String(num);
 
       var cardBtn = document.getElementById('cardBtn');
-      var numVal = document.getElementById('numVal');
-      var cornerTl = document.getElementById('cornerTl');
-      var cornerBr = document.getElementById('cornerBr');
-      var cardSubLabel = document.getElementById('cardSubLabel');
-      var maskVal = document.getElementById('maskVal');
-
-      numVal.textContent = String(num);
-      cornerTl.textContent = String(num);
-      cornerBr.textContent = String(num);
-
       if (state.masked) {
         cardBtn.classList.add('is-masked');
-        numVal.style.display = 'none';
-        cornerTl.style.display = 'none';
-        cornerBr.style.display = 'none';
-        cardSubLabel.style.display = 'none';
-        maskVal.style.display = 'inline-block';
+        document.getElementById('numVal').style.display = 'none';
+        document.getElementById('cornerTl').style.display = 'none';
+        document.getElementById('cornerBr').style.display = 'none';
+        document.getElementById('maskVal').style.display = 'inline-block';
       } else {
         cardBtn.classList.remove('is-masked');
-        numVal.style.display = 'block';
-        cornerTl.style.display = 'block';
-        cornerBr.style.display = 'block';
-        cardSubLabel.style.display = 'block';
-        maskVal.style.display = 'none';
+        document.getElementById('numVal').style.display = 'block';
+        document.getElementById('cornerTl').style.display = 'block';
+        document.getElementById('cornerBr').style.display = 'block';
+        document.getElementById('maskVal').style.display = 'none';
       }
-
       document.getElementById('maskBtn').textContent = state.masked ? '見る' : '隠す';
       renderMembers();
 
       var banner = document.getElementById('resultBanner');
-      var judgeRow = document.getElementById('judgeRow');
-      var nextBtn = document.getElementById('nextBtn');
-
       if (!state.finished) {
         banner.style.display = 'none';
-        banner.className = 'result-banner';
-        judgeRow.style.display = 'flex';
-        nextBtn.style.display = 'none';
+        document.getElementById('judgeRow').style.display = 'flex';
+        document.getElementById('nextBtn').style.display = 'none';
       } else {
-        var isOk = state.lastResult === 'success';
         banner.style.display = 'block';
-        banner.className = 'result-banner ' + (isOk ? 'result-ok' : 'result-ng');
-        banner.textContent = isOk
-          ? '第' + state.gameCount + 'ゲーム：成功（あなたの数字: ' + num + '）'
-          : '第' + state.gameCount + 'ゲーム：失敗（あなたの数字: ' + num + '）';
-        judgeRow.style.display = 'none';
-        nextBtn.style.display = 'block';
+        banner.className = 'result-banner ' + (state.lastResult === 'success' ? 'result-ok' : 'result-ng');
+        banner.textContent = '第' + state.gameCount + 'ゲーム：' + (state.lastResult === 'success' ? '成功' : '失敗') + '（数字: ' + num + '）';
+        document.getElementById('judgeRow').style.display = 'none';
+        document.getElementById('nextBtn').style.display = 'block';
       }
     }
 
     function applyRoomPayload(data) {
       if (!data || typeof data !== 'object' || data.ok === false) return false;
-      if (data.game_count !== undefined && data.game_count !== null) {
-        var c = Number(data.game_count);
-        if (!isNaN(c) && c >= 1) state.gameCount = c;
+      if (data.game_count !== undefined && !isNaN(Number(data.game_count)) && Number(data.game_count) >= 1) {
+        state.gameCount = Number(data.game_count);
       }
-      if (data.theme && String(data.theme).trim() !== '') {
-        state.theme = String(data.theme).trim();
-      }
+      if (data.theme && String(data.theme).trim() !== '') state.theme = String(data.theme).trim();
       if (Array.isArray(data.members) || Array.isArray(data.participants)) {
         state.members = normalizeMembers(data.members || data.participants);
       }
-      if (typeof data.member_count === 'number') {
-        state.serverMemberCount = data.member_count;
-      } else if (typeof data.participant_count === 'number') {
-        state.serverMemberCount = data.participant_count;
-      } else if (Array.isArray(data.members) || Array.isArray(data.participants)) {
-        state.serverMemberCount = state.members.length;
-      }
+      if (typeof data.member_count === 'number') state.serverMemberCount = data.member_count;
+      else if (Array.isArray(data.members) || Array.isArray(data.participants)) state.serverMemberCount = state.members.length;
       mergeLocalMember();
       return true;
     }
 
-    function parseJsonSafe(txt) {
-      try {
-        return JSON.parse(txt);
-      } catch (e) {
-        return null;
+    function requestGas(method, url, bodyObj) {
+      var opts = { method: method };
+      if (method === 'POST') {
+        opts.headers = { 'Content-Type': 'text/plain;charset=utf-8' };
+        opts.body = JSON.stringify(bodyObj || {});
       }
+      return fetch(url, opts).then(function (r) {
+        return r.text().then(function (txt) {
+          var parsed = null;
+          try { parsed = JSON.parse(txt); } catch (e) {}
+          return { status: r.status, raw: txt, json: parsed };
+        });
+      });
     }
 
     function callGasGet(roomId) {
       var url = GAS_URL + '?room=' + encodeURIComponent(roomId) + '&_t=' + Date.now();
-      if (state.nickname) {
-        url += '&nickname=' + encodeURIComponent(state.nickname);
-      }
-      return fetch(url)
-        .then(function (r) { return r.text(); })
-        .then(function (t) { return parseJsonSafe(t); });
+      if (state.nickname) url += '&nickname=' + encodeURIComponent(state.nickname);
+      return requestGas('GET', url, null);
     }
 
     function callGasPost(payload) {
@@ -683,13 +357,7 @@
       if (payload.theme !== undefined && payload.theme !== null && String(payload.theme).trim() !== '') {
         body.theme = String(payload.theme).trim();
       }
-      return fetch(GAS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(body)
-      })
-        .then(function (r) { return r.text(); })
-        .then(function (t) { return parseJsonSafe(t); });
+      return requestGas('POST', GAS_URL, body);
     }
 
     function startAutoSync() {
@@ -699,97 +367,61 @@
         isSyncing = true;
         var targetRoom = state.roomId;
         callGasGet(targetRoom)
-          .then(function (data) {
-            if (state.roomId === targetRoom && applyRoomPayload(data)) {
+          .then(function (res) {
+            if (state.roomId === targetRoom && res && res.json && applyRoomPayload(res.json)) {
               render();
             }
           })
           .catch(function () {})
           .finally(function () { isSyncing = false; });
-      }, 3500);
+      }, 4000);
     }
 
     function enterRoom(id, isCreateMode, keepNumber) {
       var clean = String(id || '').trim().toUpperCase();
-      if (!clean) {
-        setStatus('ルームIDを入力してください。');
-        return;
-      }
+      if (!clean) { setStatus('ルームIDを入力してください。'); return; }
       if (!state.nickname) {
-        var typedNick = document.getElementById('nicknameInput').value.trim();
-        if (typedNick) state.nickname = typedNick;
+        var typed = document.getElementById('nicknameInput').value.trim();
+        if (typed) state.nickname = typed;
       }
-
       var mySeq = ++reqSeq;
-      var isNewRoom = state.roomId !== clean;
-      state.roomId = clean;
-      if (isNewRoom) {
+      if (state.roomId !== clean) {
         state.members = [];
         state.serverMemberCount = null;
       }
+      state.roomId = clean;
       if (!keepNumber) {
-        state.finished = false;
-        state.lastResult = null;
-        state.masked = false;
-        state.number = drawNum();
+        state.finished = false; state.lastResult = null; state.masked = false; state.number = drawNum();
       }
       mergeLocalMember();
       render();
       startAutoSync();
-      setStatus('ルーム「' + clean + '」に接続中...', '通信中');
+      setStatus('POST送信中（room=' + clean + '）...', '通信中');
 
-      if (isCreateMode) {
-        callGasPost({
-          room_id: clean,
-          theme: state.theme,
-          game_count: state.gameCount,
-          action: 'create'
-        })
-          .then(function (postRes) {
-            if (mySeq !== reqSeq) return;
-            if (applyRoomPayload(postRes)) {
-              render();
-              setStatus('ルーム「' + clean + '」を作成しました（参加者 ' + getMemberCount() + '人）。', '同期済み');
-            } else {
-              setStatus('ルーム「' + clean + '」の応答を確認中...', '注意');
-            }
-          })
-          .catch(function (err) {
-            if (mySeq !== reqSeq) return;
+      var stepFn = isCreateMode
+        ? callGasPost({ room_id: clean, theme: state.theme, game_count: state.gameCount, action: 'create' })
+        : callGasGet(clean).then(function (getRes) {
+            if (mySeq !== reqSeq) return null;
+            var gJson = getRes && getRes.json ? getRes.json : null;
+            var hasTheme = gJson && gJson.theme && String(gJson.theme).trim() !== '';
+            if (gJson) applyRoomPayload(gJson);
             render();
-            setStatus('通信エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
+            return callGasPost({ room_id: clean, theme: hasTheme ? '' : state.theme, game_count: state.gameCount, action: 'join' });
           });
-        return;
-      }
 
-      // 既存ルームへ入室・最新読込：まずサーバーのお題とメンバーを取得する
-      callGasGet(clean)
-        .then(function (data) {
-          if (mySeq !== reqSeq) return null;
-          var serverHasTheme = data && data.theme && String(data.theme).trim() !== '';
-          if (applyRoomPayload(data)) {
-            render();
-          }
-          // サーバーにお題が無い場合のみ自分のテーマを送る。ある場合はサーバーのお題を上書きしない
-          return callGasPost({
-            room_id: clean,
-            theme: serverHasTheme ? '' : state.theme,
-            game_count: state.gameCount,
-            action: 'join'
-          });
-        })
-        .then(function (postRes) {
-          if (mySeq !== reqSeq || !postRes) return;
-          if (applyRoomPayload(postRes)) {
-            render();
-          }
-          setStatus('ルーム「' + clean + '」と同期しました（参加者 ' + getMemberCount() + '人）。', '同期済み');
-        })
-        .catch(function (err) {
-          if (mySeq !== reqSeq) return;
+      stepFn.then(function (res) {
+        if (mySeq !== reqSeq || !res) return;
+        if (res.json && applyRoomPayload(res.json)) {
           render();
-          setStatus('通信エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
-        });
+          setStatus('OK (HTTP ' + res.status + '): 参加者=' + JSON.stringify(state.members) + ' / テーマ=' + state.theme, '同期済み');
+        } else {
+          setStatus('HTTP ' + res.status + ' 応答: ' + String(res.raw || '').slice(0, 180), '要確認');
+        }
+      }).catch(function (err) {
+        if (mySeq !== reqSeq) return;
+        render();
+        setStatus('通信例外: ' + (err && err.message ? err.message : String(err)), 'エラー');
+      });
     }
 
     function applyTheme(nextTheme, label) {
@@ -797,182 +429,111 @@
       if (!t) return;
       state.theme = t;
       render();
-
-      if (!state.roomId) {
-        setStatus((label || 'テーマ') + 'を反映しました（ルーム未入室）。');
-        return;
-      }
-
+      if (!state.roomId) { setStatus((label || 'テーマ') + 'を反映しました（ルーム未入室）。'); return; }
       var mySeq = ++reqSeq;
-      setStatus('テーマを共有中...', '通信中');
-      callGasPost({
-        room_id: state.roomId,
-        theme: state.theme,
-        game_count: state.gameCount,
-        action: 'theme'
-      })
+      setStatus('テーマPOST送信中...', '通信中');
+      callGasPost({ room_id: state.roomId, theme: state.theme, game_count: state.gameCount, action: 'theme' })
         .then(function (res) {
           if (mySeq !== reqSeq) return;
-          if (applyRoomPayload(res)) render();
-          setStatus('テーマを共有しました。', '同期済み');
+          if (res && res.json && applyRoomPayload(res.json)) {
+            render();
+            setStatus('テーマ同期OK (HTTP ' + res.status + '): ' + state.theme, '同期済み');
+          } else {
+            setStatus('HTTP ' + (res ? res.status : '') + ' 応答: ' + String(res && res.raw ? res.raw : '').slice(0, 180), '要確認');
+          }
         })
         .catch(function (err) {
           if (mySeq !== reqSeq) return;
-          render();
-          setStatus('テーマ送信エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
+          setStatus('テーマ通信例外: ' + (err && err.message ? err.message : String(err)), 'エラー');
         });
     }
 
-    function toggleMask() {
-      state.masked = !state.masked;
-      render();
-    }
+    function toggleMask() { state.masked = !state.masked; render(); }
 
     function copyText(str, okMsg) {
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(str)
-          .then(function () { setStatus(okMsg); })
-          .catch(function () { setStatus('コピーできませんでした: ' + str); });
-      } else {
-        setStatus('コピーできませんでした: ' + str);
+        navigator.clipboard.writeText(str).then(function () { setStatus(okMsg); }).catch(function () { setStatus('コピー失敗: ' + str); });
       }
     }
 
     document.getElementById('nicknameForm').addEventListener('submit', function (e) {
       e.preventDefault();
-      var inp = document.getElementById('nicknameInput');
-      var nick = inp.value.trim();
-      if (!nick) {
-        setStatus('ニックネームを入力してください。');
-        return;
-      }
+      var nick = document.getElementById('nicknameInput').value.trim();
+      if (!nick) { setStatus('ニックネームを入力してください。'); return; }
       state.nickname = nick;
       mergeLocalMember();
       render();
-
-      if (!state.roomId) {
-        setStatus('ニックネームを「' + nick + '」に設定しました。ルームを作成するか入室してください。');
-        return;
-      }
-
+      if (!state.roomId) { setStatus('ニックネーム「' + nick + '」を設定しました。'); return; }
       var mySeq = ++reqSeq;
-      setStatus('ニックネームを反映中...', '通信中');
-      callGasPost({
-        room_id: state.roomId,
-        theme: '',
-        game_count: state.gameCount,
-        action: 'join'
-      })
+      setStatus('ニックネームPOST送信中...', '通信中');
+      callGasPost({ room_id: state.roomId, theme: '', game_count: state.gameCount, action: 'join' })
         .then(function (res) {
           if (mySeq !== reqSeq) return;
-          if (applyRoomPayload(res)) render();
-          setStatus('ニックネーム「' + nick + '」を反映しました（参加者 ' + getMemberCount() + '人）。', '同期済み');
+          if (res && res.json && applyRoomPayload(res.json)) {
+            render();
+            setStatus('名前同期OK (HTTP ' + res.status + '): ' + JSON.stringify(state.members), '同期済み');
+          } else {
+            setStatus('HTTP ' + (res ? res.status : '') + ' 応答: ' + String(res && res.raw ? res.raw : '').slice(0, 180), '要確認');
+          }
         })
         .catch(function (err) {
           if (mySeq !== reqSeq) return;
-          render();
-          setStatus('ニックネーム反映エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
+          setStatus('名前通信例外: ' + (err && err.message ? err.message : String(err)), 'エラー');
         });
     });
 
-    document.getElementById('createRoomBtn').addEventListener('click', function () {
-      enterRoom(genId(), true, false);
-    });
-
+    document.getElementById('createRoomBtn').addEventListener('click', function () { enterRoom(genId(), true, false); });
     document.getElementById('joinRoomForm').addEventListener('submit', function (e) {
       e.preventDefault();
       var inp = document.getElementById('joinRoomInput');
-      var v = inp.value;
-      inp.value = '';
+      var v = inp.value; inp.value = '';
       enterRoom(v, false, false);
     });
-
     document.getElementById('refreshBtn').addEventListener('click', function () {
-      if (!state.roomId) {
-        setStatus('先にルームを作成または入室してください。');
-        return;
-      }
+      if (!state.roomId) { setStatus('先にルームを作成または入室してください。'); return; }
       enterRoom(state.roomId, false, true);
     });
-
-    document.getElementById('drawThemeBtn').addEventListener('click', function () {
-      applyTheme(pickRandomTheme(), 'ランダムお題');
-    });
-
+    document.getElementById('drawThemeBtn').addEventListener('click', function () { applyTheme(pickRandomTheme(), 'ランダムお題'); });
     document.getElementById('themeForm').addEventListener('submit', function (e) {
       e.preventDefault();
       var inp = document.getElementById('themeInput');
-      var t = inp.value.trim();
-      if (!t) return;
-      inp.value = '';
+      var t = inp.value.trim(); if (!t) return; inp.value = '';
       applyTheme(t, 'テーマ');
     });
-
     document.getElementById('maskBtn').addEventListener('click', toggleMask);
     document.getElementById('cardBtn').addEventListener('click', toggleMask);
-
-    document.getElementById('successBtn').addEventListener('click', function () {
-      state.finished = true;
-      state.lastResult = 'success';
-      render();
-      setStatus('「次のゲームへ」を押すと新しいお題と数字に進みます。');
-    });
-
-    document.getElementById('failBtn').addEventListener('click', function () {
-      state.finished = true;
-      state.lastResult = 'fail';
-      render();
-      setStatus('「次のゲームへ」を押すと新しいお題と数字に進みます。');
-    });
-
+    document.getElementById('successBtn').addEventListener('click', function () { state.finished = true; state.lastResult = 'success'; render(); });
+    document.getElementById('failBtn').addEventListener('click', function () { state.finished = true; state.lastResult = 'fail'; render(); });
     document.getElementById('nextBtn').addEventListener('click', function () {
-      state.gameCount += 1;
-      state.number = drawNum();
-      state.masked = false;
-      state.finished = false;
-      state.lastResult = null;
+      state.gameCount += 1; state.number = drawNum(); state.masked = false; state.finished = false; state.lastResult = null;
       state.theme = pickRandomTheme();
       render();
-
       if (state.roomId) {
         var mySeq = ++reqSeq;
-        setStatus('次のゲーム情報を同期中...', '通信中');
-        callGasPost({
-          room_id: state.roomId,
-          theme: state.theme,
-          game_count: state.gameCount,
-          action: 'next'
-        })
+        setStatus('次のゲームPOST送信中...', '通信中');
+        callGasPost({ room_id: state.roomId, theme: state.theme, game_count: state.gameCount, action: 'next' })
           .then(function (res) {
             if (mySeq !== reqSeq) return;
-            if (applyRoomPayload(res)) render();
-            setStatus('第' + state.gameCount + 'ゲームを開始しました。', '同期済み');
+            if (res && res.json && applyRoomPayload(res.json)) {
+              render();
+              setStatus('次ゲーム同期OK (HTTP ' + res.status + '): 第' + state.gameCount + 'ゲーム', '同期済み');
+            } else {
+              setStatus('HTTP ' + (res ? res.status : '') + ' 応答: ' + String(res && res.raw ? res.raw : '').slice(0, 180), '要確認');
+            }
           })
           .catch(function (err) {
             if (mySeq !== reqSeq) return;
-            render();
-            setStatus('同期エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
+            setStatus('次ゲーム通信例外: ' + (err && err.message ? err.message : String(err)), 'エラー');
           });
-      } else {
-        setStatus('第' + state.gameCount + 'ゲームへ進み、新しいお題を引きました。');
       }
     });
-
     document.getElementById('copyIdBtn').addEventListener('click', function () {
-      if (!state.roomId) {
-        setStatus('コピーするルームIDがありません。');
-        return;
-      }
+      if (!state.roomId) return;
       copyText(state.roomId, 'ルームID「' + state.roomId + '」をコピーしました。');
     });
-
     document.getElementById('copyInviteBtn').addEventListener('click', function () {
-      if (!state.roomId) {
-        setStatus('先にルームを作成してください。');
-        return;
-      }
-      var msg = 'ito風ゲームに参加しよう！\nURL: ' + SHARE_URL + '\nルームID: ' + state.roomId + '\nURLを開いてルームIDを入力して「入る」を押してね';
-      copyText(msg, 'URLとルームID入りの招待案内文をコピーしました。');
+      if (!state.roomId) return;
+      copyText('ito風ゲームに参加しよう！\nURL: ' + SHARE_URL + '\nルームID: ' + state.roomId, '招待案内文をコピーしました。');
     });
 
     render();
