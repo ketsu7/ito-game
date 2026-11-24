@@ -485,6 +485,7 @@
 
     var syncTimer = null;
     var isSyncing = false;
+    var reqSeq = 0;
 
     function setStatus(text, badgeText) {
       var s = document.getElementById('statusMsg');
@@ -632,7 +633,7 @@
     }
 
     function applyRoomPayload(data) {
-      if (!data || typeof data !== 'object' || data.ok === false) return;
+      if (!data || typeof data !== 'object' || data.ok === false) return false;
       if (data.game_count !== undefined && data.game_count !== null) {
         var c = Number(data.game_count);
         if (!isNaN(c) && c >= 1) state.gameCount = c;
@@ -651,6 +652,7 @@
         state.serverMemberCount = state.members.length;
       }
       mergeLocalMember();
+      return true;
     }
 
     function parseJsonSafe(txt) {
@@ -675,10 +677,12 @@
       var body = {
         nickname: state.nickname,
         room_id: payload.room_id,
-        theme: payload.theme,
         game_count: payload.game_count,
         action: payload.action || ''
       };
+      if (payload.theme !== undefined && payload.theme !== null && String(payload.theme).trim() !== '') {
+        body.theme = String(payload.theme).trim();
+      }
       return fetch(GAS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -693,19 +697,19 @@
       syncTimer = setInterval(function () {
         if (!state.roomId || isSyncing || document.hidden) return;
         isSyncing = true;
-        callGasGet(state.roomId)
+        var targetRoom = state.roomId;
+        callGasGet(targetRoom)
           .then(function (data) {
-            if (data && data.ok !== false) {
-              applyRoomPayload(data);
+            if (state.roomId === targetRoom && applyRoomPayload(data)) {
               render();
             }
           })
           .catch(function () {})
           .finally(function () { isSyncing = false; });
-      }, 4000);
+      }, 3500);
     }
 
-    function enterRoom(id, initialTheme, keepNumber) {
+    function enterRoom(id, isCreateMode, keepNumber) {
       var clean = String(id || '').trim().toUpperCase();
       if (!clean) {
         setStatus('ルームIDを入力してください。');
@@ -715,6 +719,8 @@
         var typedNick = document.getElementById('nicknameInput').value.trim();
         if (typedNick) state.nickname = typedNick;
       }
+
+      var mySeq = ++reqSeq;
       var isNewRoom = state.roomId !== clean;
       state.roomId = clean;
       if (isNewRoom) {
@@ -732,27 +738,57 @@
       startAutoSync();
       setStatus('ルーム「' + clean + '」に接続中...', '通信中');
 
+      if (isCreateMode) {
+        callGasPost({
+          room_id: clean,
+          theme: state.theme,
+          game_count: state.gameCount,
+          action: 'create'
+        })
+          .then(function (postRes) {
+            if (mySeq !== reqSeq) return;
+            if (applyRoomPayload(postRes)) {
+              render();
+              setStatus('ルーム「' + clean + '」を作成しました（参加者 ' + getMemberCount() + '人）。', '同期済み');
+            } else {
+              setStatus('ルーム「' + clean + '」の応答を確認中...', '注意');
+            }
+          })
+          .catch(function (err) {
+            if (mySeq !== reqSeq) return;
+            render();
+            setStatus('通信エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
+          });
+        return;
+      }
+
+      // 既存ルームへ入室・最新読込：まずサーバーのお題とメンバーを取得する
       callGasGet(clean)
         .then(function (data) {
-          if (data && data.ok !== false) applyRoomPayload(data);
-          if ((!data || !data.theme || String(data.theme).trim() === '') && initialTheme) {
-            state.theme = initialTheme;
+          if (mySeq !== reqSeq) return null;
+          var serverHasTheme = data && data.theme && String(data.theme).trim() !== '';
+          if (applyRoomPayload(data)) {
+            render();
           }
+          // サーバーにお題が無い場合のみ自分のテーマを送る。ある場合はサーバーのお題を上書きしない
           return callGasPost({
             room_id: clean,
-            theme: state.theme,
+            theme: serverHasTheme ? '' : state.theme,
             game_count: state.gameCount,
             action: 'join'
           });
         })
         .then(function (postRes) {
-          if (postRes && postRes.ok !== false) applyRoomPayload(postRes);
-          render();
-          setStatus('ルーム「' + clean + '」に入室しました。', '同期済み');
+          if (mySeq !== reqSeq || !postRes) return;
+          if (applyRoomPayload(postRes)) {
+            render();
+          }
+          setStatus('ルーム「' + clean + '」と同期しました（参加者 ' + getMemberCount() + '人）。', '同期済み');
         })
         .catch(function (err) {
+          if (mySeq !== reqSeq) return;
           render();
-          setStatus('ルーム「' + clean + '」を表示中（通信エラー: ' + (err && err.message ? err.message : String(err)) + '）', '確認中');
+          setStatus('通信エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
         });
     }
 
@@ -767,18 +803,21 @@
         return;
       }
 
+      var mySeq = ++reqSeq;
       setStatus('テーマを共有中...', '通信中');
       callGasPost({
         room_id: state.roomId,
         theme: state.theme,
-        game_count: state.gameCount
+        game_count: state.gameCount,
+        action: 'theme'
       })
         .then(function (res) {
-          if (res && res.ok !== false) applyRoomPayload(res);
-          render();
+          if (mySeq !== reqSeq) return;
+          if (applyRoomPayload(res)) render();
           setStatus('テーマを共有しました。', '同期済み');
         })
         .catch(function (err) {
+          if (mySeq !== reqSeq) return;
           render();
           setStatus('テーマ送信エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
         });
@@ -816,26 +855,28 @@
         return;
       }
 
+      var mySeq = ++reqSeq;
       setStatus('ニックネームを反映中...', '通信中');
       callGasPost({
         room_id: state.roomId,
-        theme: state.theme,
+        theme: '',
         game_count: state.gameCount,
         action: 'join'
       })
         .then(function (res) {
-          if (res && res.ok !== false) applyRoomPayload(res);
-          render();
-          setStatus('ニックネーム「' + nick + '」を反映しました。', '同期済み');
+          if (mySeq !== reqSeq) return;
+          if (applyRoomPayload(res)) render();
+          setStatus('ニックネーム「' + nick + '」を反映しました（参加者 ' + getMemberCount() + '人）。', '同期済み');
         })
         .catch(function (err) {
+          if (mySeq !== reqSeq) return;
           render();
           setStatus('ニックネーム反映エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
         });
     });
 
     document.getElementById('createRoomBtn').addEventListener('click', function () {
-      enterRoom(genId(), state.theme, false);
+      enterRoom(genId(), true, false);
     });
 
     document.getElementById('joinRoomForm').addEventListener('submit', function (e) {
@@ -843,7 +884,7 @@
       var inp = document.getElementById('joinRoomInput');
       var v = inp.value;
       inp.value = '';
-      enterRoom(v, '', false);
+      enterRoom(v, false, false);
     });
 
     document.getElementById('refreshBtn').addEventListener('click', function () {
@@ -851,7 +892,7 @@
         setStatus('先にルームを作成または入室してください。');
         return;
       }
-      enterRoom(state.roomId, '', true);
+      enterRoom(state.roomId, false, true);
     });
 
     document.getElementById('drawThemeBtn').addEventListener('click', function () {
@@ -894,18 +935,21 @@
       render();
 
       if (state.roomId) {
+        var mySeq = ++reqSeq;
         setStatus('次のゲーム情報を同期中...', '通信中');
         callGasPost({
           room_id: state.roomId,
           theme: state.theme,
-          game_count: state.gameCount
+          game_count: state.gameCount,
+          action: 'next'
         })
           .then(function (res) {
-            if (res && res.ok !== false) applyRoomPayload(res);
-            render();
+            if (mySeq !== reqSeq) return;
+            if (applyRoomPayload(res)) render();
             setStatus('第' + state.gameCount + 'ゲームを開始しました。', '同期済み');
           })
           .catch(function (err) {
+            if (mySeq !== reqSeq) return;
             render();
             setStatus('同期エラー: ' + (err && err.message ? err.message : String(err)), 'エラー');
           });
