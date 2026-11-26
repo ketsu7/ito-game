@@ -236,13 +236,15 @@
 
     .card-stage {
       display: flex;
+      flex-wrap: wrap;
       justify-content: center;
+      gap: 12px;
       padding: 8px 0 4px;
     }
     .num-box {
-      width: 176px;
-      height: 228px;
-      border-radius: 20px;
+      width: 152px;
+      height: 204px;
+      border-radius: 18px;
       border: 3px solid var(--border);
       background: #ffffff;
       box-shadow: 0 6px 0 var(--border);
@@ -251,14 +253,18 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 12px;
+      padding: 10px;
+    }
+    .card-stage.is-multi .num-box {
+      width: 132px;
+      height: 180px;
     }
     .num-box::after {
       content: "";
       position: absolute;
-      inset: 7px;
+      inset: 6px;
       border: 1.5px solid #cbd5e1;
-      border-radius: 13px;
+      border-radius: 12px;
       pointer-events: none;
     }
     .num-box.is-masked {
@@ -272,19 +278,22 @@
     }
     .corner-num {
       position: absolute;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 900;
       color: var(--red);
       line-height: 1;
     }
-    .corner-tl { top: 14px; left: 15px; }
-    .corner-br { bottom: 14px; right: 15px; transform: rotate(180deg); }
+    .corner-tl { top: 12px; left: 13px; }
+    .corner-br { bottom: 12px; right: 13px; transform: rotate(180deg); }
     .num-val {
-      font-size: 68px;
+      font-size: 58px;
       font-weight: 900;
       color: var(--ink);
       line-height: 1;
       letter-spacing: -2px;
+    }
+    .card-stage.is-multi .num-val {
+      font-size: 48px;
     }
     .card-sub-label {
       margin-top: 8px;
@@ -297,8 +306,8 @@
       color: var(--red);
       border: 2px solid var(--border);
       border-radius: 999px;
-      padding: 6px 14px;
-      font-size: 15px;
+      padding: 5px 12px;
+      font-size: 14px;
       font-weight: 900;
       letter-spacing: 2px;
       box-shadow: 0 3px 0 var(--border);
@@ -345,7 +354,10 @@
     <div class="card col" style="gap:10px;">
       <div class="row" style="justify-content: space-between;">
         <span class="sec-label">プレイヤー名</span>
-        <span class="game-pill">第 <strong id="gameCount">1</strong> ゲーム</span>
+        <div class="row" style="gap:6px;">
+          <span class="badge">1人 <strong id="handCountBadge">1</strong>枚</span>
+          <span class="game-pill">第 <strong id="gameCount">1</strong> ゲーム</span>
+        </div>
       </div>
       <form id="nicknameForm" class="row">
         <input id="nicknameInput" type="text" maxlength="20" placeholder="ニックネームを入力（例：たくみ）" />
@@ -394,18 +406,10 @@
     <div class="card">
       <div class="row" style="justify-content: space-between;">
         <span class="sec-label">あなたのナンバーカード</span>
-        <button id="maskBtn" type="button" class="btn-sub" style="padding:6px 11px; font-size:12px;">隠す</button>
+        <button id="maskAllBtn" type="button" class="btn-sub" style="padding:6px 11px; font-size:12px;">すべて隠す</button>
       </div>
 
-      <div class="card-stage">
-        <button id="cardBtn" type="button" class="num-box">
-          <span id="cornerTl" class="corner-num corner-tl">42</span>
-          <span id="numVal" class="num-val">42</span>
-          <span id="cardSubLabel" class="card-sub-label">タップで裏返す</span>
-          <span id="cornerBr" class="corner-num corner-br">42</span>
-          <span id="maskVal" class="mask-badge" style="display:none;">SECRET</span>
-        </button>
-      </div>
+      <div id="cardStage" class="card-stage"></div>
 
       <div id="resultBanner" class="result-banner"></div>
 
@@ -465,8 +469,29 @@
       '明日への活力になる一言や出来事'
     ];
 
-    function drawNum() {
-      return Math.floor(Math.random() * 100) + 1;
+    function drawNum(usedSet) {
+      var n = Math.floor(Math.random() * 100) + 1;
+      if (!usedSet) return n;
+      var guard = 0;
+      while (usedSet[n] && guard < 200) {
+        n = Math.floor(Math.random() * 100) + 1;
+        guard++;
+      }
+      usedSet[n] = true;
+      return n;
+    }
+
+    function dealHand(count) {
+      var safeCount = Math.max(1, Math.min(5, Number(count) || 1));
+      var used = {};
+      var cards = [];
+      for (var i = 0; i < safeCount; i++) {
+        cards.push({
+          value: drawNum(used),
+          masked: false
+        });
+      }
+      return cards;
     }
 
     var state = {
@@ -477,8 +502,8 @@
       theme: THEMES[0],
       lastThemeIndex: 0,
       gameCount: 1,
-      number: drawNum(),
-      masked: false,
+      cardsPerPlayer: 1,
+      cards: dealHand(1),
       finished: false,
       lastResult: null
     };
@@ -570,47 +595,76 @@
       }
     }
 
-    function render() {
-      var num = Number(state.number);
-      if (!num || num < 1 || num > 100) {
-        num = drawNum();
-        state.number = num;
+    function renderCards() {
+      var stage = document.getElementById('cardStage');
+      stage.innerHTML = '';
+      if (!Array.isArray(state.cards) || !state.cards.length) {
+        state.cards = dealHand(state.cardsPerPlayer);
       }
 
+      stage.className = 'card-stage' + (state.cards.length >= 2 ? ' is-multi' : '');
+
+      var allMasked = state.cards.length > 0 && state.cards.every(function (c) { return !!c.masked; });
+      document.getElementById('maskAllBtn').textContent = allMasked ? 'すべて見る' : 'すべて隠す';
+
+      for (var i = 0; i < state.cards.length; i++) {
+        (function (idx) {
+          var item = state.cards[idx];
+          var num = Number(item.value) || drawNum();
+          item.value = num;
+
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'num-box' + (item.masked ? ' is-masked' : '');
+
+          if (item.masked) {
+            var badge = document.createElement('span');
+            badge.className = 'mask-badge';
+            badge.textContent = 'SECRET';
+            btn.appendChild(badge);
+          } else {
+            var tl = document.createElement('span');
+            tl.className = 'corner-num corner-tl';
+            tl.textContent = String(num);
+
+            var val = document.createElement('span');
+            val.className = 'num-val';
+            val.textContent = String(num);
+
+            var sub = document.createElement('span');
+            sub.className = 'card-sub-label';
+            sub.textContent = state.cards.length > 1 ? 'カード' + (idx + 1) + '・タップで隠す' : 'タップで裏返す';
+
+            var br = document.createElement('span');
+            br.className = 'corner-num corner-br';
+            br.textContent = String(num);
+
+            btn.appendChild(tl);
+            btn.appendChild(val);
+            btn.appendChild(sub);
+            btn.appendChild(br);
+          }
+
+          btn.addEventListener('click', function () {
+            state.cards[idx].masked = !state.cards[idx].masked;
+            renderCards();
+          });
+
+          stage.appendChild(btn);
+        })(i);
+      }
+    }
+
+    function render() {
       document.getElementById('gameCount').textContent = state.gameCount;
+      document.getElementById('handCountBadge').textContent = state.cardsPerPlayer;
       document.getElementById('roomIdDisp').textContent = state.roomId || '------';
       document.getElementById('themeDisp').textContent = state.theme;
 
-      var cardBtn = document.getElementById('cardBtn');
-      var numVal = document.getElementById('numVal');
-      var cornerTl = document.getElementById('cornerTl');
-      var cornerBr = document.getElementById('cornerBr');
-      var cardSubLabel = document.getElementById('cardSubLabel');
-      var maskVal = document.getElementById('maskVal');
-
-      numVal.textContent = String(num);
-      cornerTl.textContent = String(num);
-      cornerBr.textContent = String(num);
-
-      if (state.masked) {
-        cardBtn.classList.add('is-masked');
-        numVal.style.display = 'none';
-        cornerTl.style.display = 'none';
-        cornerBr.style.display = 'none';
-        cardSubLabel.style.display = 'none';
-        maskVal.style.display = 'inline-block';
-      } else {
-        cardBtn.classList.remove('is-masked');
-        numVal.style.display = 'block';
-        cornerTl.style.display = 'block';
-        cornerBr.style.display = 'block';
-        cardSubLabel.style.display = 'block';
-        maskVal.style.display = 'none';
-      }
-
-      document.getElementById('maskBtn').textContent = state.masked ? '見る' : '隠す';
+      renderCards();
       renderMembers();
 
+      var numListText = state.cards.map(function (c) { return c.value; }).join(', ');
       var banner = document.getElementById('resultBanner');
       var judgeRow = document.getElementById('judgeRow');
       var nextBtn = document.getElementById('nextBtn');
@@ -625,8 +679,8 @@
         banner.style.display = 'block';
         banner.className = 'result-banner ' + (isOk ? 'result-ok' : 'result-ng');
         banner.textContent = isOk
-          ? '第' + state.gameCount + 'ゲーム：成功（あなたの数字: ' + num + '）'
-          : '第' + state.gameCount + 'ゲーム：失敗（あなたの数字: ' + num + '）';
+          ? '第' + state.gameCount + 'ゲーム：成功！次は ' + (state.cardsPerPlayer + 1) + ' 枚になります（あなたの数字: ' + numListText + '）'
+          : '第' + state.gameCount + 'ゲーム：失敗…次は 1 枚に戻ります（あなたの数字: ' + numListText + '）';
         judgeRow.style.display = 'none';
         nextBtn.style.display = 'block';
       }
@@ -730,8 +784,8 @@
       if (!keepNumber) {
         state.finished = false;
         state.lastResult = null;
-        state.masked = false;
-        state.number = drawNum();
+        state.cardsPerPlayer = 1;
+        state.cards = dealHand(1);
       }
       mergeLocalMember();
       render();
@@ -821,11 +875,6 @@
         });
     }
 
-    function toggleMask() {
-      state.masked = !state.masked;
-      render();
-    }
-
     function copyText(str, okMsg) {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(str)
@@ -906,27 +955,36 @@
       applyTheme(t, 'テーマ');
     });
 
-    document.getElementById('maskBtn').addEventListener('click', toggleMask);
-    document.getElementById('cardBtn').addEventListener('click', toggleMask);
+    document.getElementById('maskAllBtn').addEventListener('click', function () {
+      var allMasked = state.cards.length > 0 && state.cards.every(function (c) { return !!c.masked; });
+      for (var i = 0; i < state.cards.length; i++) {
+        state.cards[i].masked = !allMasked;
+      }
+      renderCards();
+    });
 
     document.getElementById('successBtn').addEventListener('click', function () {
       state.finished = true;
       state.lastResult = 'success';
       render();
-      setStatus('「次のゲームへ」を押すと新しいお題と数字に進みます。');
+      setStatus('成功！「次のゲームへ」を押すとカードが ' + (state.cardsPerPlayer + 1) + ' 枚になります。');
     });
 
     document.getElementById('failBtn').addEventListener('click', function () {
       state.finished = true;
       state.lastResult = 'fail';
       render();
-      setStatus('「次のゲームへ」を押すと新しいお題と数字に進みます。');
+      setStatus('「次のゲームへ」を押すと次のゲームに進みます。');
     });
 
     document.getElementById('nextBtn').addEventListener('click', function () {
+      var nextCardsCount = state.lastResult === 'success'
+        ? Math.min(5, state.cardsPerPlayer + 1)
+        : 1;
+
       state.gameCount += 1;
-      state.number = drawNum();
-      state.masked = false;
+      state.cardsPerPlayer = nextCardsCount;
+      state.cards = dealHand(nextCardsCount);
       state.finished = false;
       state.lastResult = null;
       state.theme = pickRandomTheme();
@@ -944,7 +1002,7 @@
           .then(function (res) {
             if (mySeq !== reqSeq) return;
             if (applyRoomPayload(res)) render();
-            setStatus('第' + state.gameCount + 'ゲームを開始しました。', '同期済み');
+            setStatus('第' + state.gameCount + 'ゲーム（1人 ' + state.cardsPerPlayer + ' 枚）を開始しました。', '同期済み');
           })
           .catch(function () {
             if (mySeq !== reqSeq) return;
@@ -952,7 +1010,7 @@
             setStatus('同期に失敗しました。', 'エラー');
           });
       } else {
-        setStatus('第' + state.gameCount + 'ゲームへ進み、新しいお題を引きました。');
+        setStatus('第' + state.gameCount + 'ゲーム（1人 ' + state.cardsPerPlayer + ' 枚）へ進みました。');
       }
     });
 
